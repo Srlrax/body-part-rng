@@ -1,380 +1,113 @@
-import * as THREE from "https://esm.sh/three@0.180.0";
-
+// Body Part RNG - self-contained canvas game (no WebGL or external 3D library required)
 const $ = (id) => document.getElementById(id);
 const SAVE_KEY = "bodyPartRngSaveV2";
-
-const partCatalog = [
-  { id:"starter-head", name:"Starter Head", slot:"Head", rarity:"Common", weight:38, price:0, income:0, health:0, power:0, color:0xf1c7a0, icon:"🙂", shape:"box" },
-  { id:"robot-head", name:"Robot Head", slot:"Head", rarity:"Rare", weight:14, price:85, income:4, health:10, power:2, color:0x8da9c7, icon:"🤖", shape:"box" },
-  { id:"crown-head", name:"Royal Crown", slot:"Head", rarity:"Epic", weight:5, price:240, income:12, health:20, power:5, color:0xf4c64e, icon:"👑", shape:"crown" },
-  { id:"starter-torso", name:"Starter Torso", slot:"Torso", rarity:"Common", weight:38, price:0, income:0, health:0, power:0, color:0x3978d4, icon:"🟦", shape:"box" },
-  { id:"rock-torso", name:"Stone Torso", slot:"Torso", rarity:"Rare", weight:14, price:110, income:5, health:35, power:1, color:0x8794a7, icon:"🪨", shape:"stone" },
-  { id:"neon-torso", name:"Neon Core", slot:"Torso", rarity:"Epic", weight:5, price:280, income:15, health:45, power:6, color:0x31d8d0, icon:"💠", shape:"neon" },
-  { id:"starter-arms", name:"Starter Arms", slot:"Arms", rarity:"Common", weight:38, price:0, income:1, health:0, power:0, color:0xf1c7a0, icon:"💪", shape:"box" },
-  { id:"steel-arms", name:"Steel Arms", slot:"Arms", rarity:"Rare", weight:14, price:130, income:5, health:20, power:8, color:0x9daec2, icon:"🦾", shape:"metal" },
-  { id:"crystal-arms", name:"Crystal Arms", slot:"Arms", rarity:"Epic", weight:5, price:320, income:18, health:25, power:14, color:0x9c7bff, icon:"🔮", shape:"crystal" },
-  { id:"starter-legs", name:"Starter Legs", slot:"Legs", rarity:"Common", weight:38, price:0, income:1, health:0, power:0, color:0x253d68, icon:"👖", shape:"box" },
-  { id:"runner-legs", name:"Runner Legs", slot:"Legs", rarity:"Rare", weight:14, price:150, income:7, health:10, power:4, color:0x45b78b, icon:"🏃", shape:"box" },
-  { id:"rocket-legs", name:"Rocket Legs", slot:"Legs", rarity:"Epic", weight:5, price:360, income:22, health:15, power:10, color:0xff875e, icon:"🚀", shape:"rocket" }
+const parts = [
+  {id:"starter-head",name:"Starter Head",slot:"Head",rarity:"Common",weight:38,price:0,income:0,health:0,power:0,color:"#f1c7a0",icon:"🙂"},
+  {id:"robot-head",name:"Robot Head",slot:"Head",rarity:"Rare",weight:14,price:85,income:4,health:10,power:2,color:"#8da9c7",icon:"🤖"},
+  {id:"crown-head",name:"Royal Crown",slot:"Head",rarity:"Epic",weight:5,price:240,income:12,health:20,power:5,color:"#f4c64e",icon:"👑"},
+  {id:"starter-torso",name:"Starter Torso",slot:"Torso",rarity:"Common",weight:38,price:0,income:0,health:0,power:0,color:"#3978d4",icon:"🟦"},
+  {id:"rock-torso",name:"Stone Torso",slot:"Torso",rarity:"Rare",weight:14,price:110,income:5,health:35,power:1,color:"#8794a7",icon:"🪨"},
+  {id:"neon-torso",name:"Neon Core",slot:"Torso",rarity:"Epic",weight:5,price:280,income:15,health:45,power:6,color:"#31d8d0",icon:"💠"},
+  {id:"starter-arms",name:"Starter Arms",slot:"Arms",rarity:"Common",weight:38,price:0,income:0,health:0,power:0,color:"#f1c7a0",icon:"💪"},
+  {id:"steel-arms",name:"Steel Arms",slot:"Arms",rarity:"Rare",weight:14,price:130,income:5,health:20,power:8,color:"#9daec2",icon:"🦾"},
+  {id:"crystal-arms",name:"Crystal Arms",slot:"Arms",rarity:"Epic",weight:5,price:320,income:18,health:25,power:14,color:"#9c7bff",icon:"🔮"},
+  {id:"starter-legs",name:"Starter Legs",slot:"Legs",rarity:"Common",weight:38,price:0,income:0,health:0,power:0,color:"#253d68",icon:"👖"},
+  {id:"runner-legs",name:"Runner Legs",slot:"Legs",rarity:"Rare",weight:14,price:150,income:7,health:10,power:4,color:"#45b78b",icon:"🏃"},
+  {id:"rocket-legs",name:"Rocket Legs",slot:"Legs",rarity:"Epic",weight:5,price:360,income:22,health:15,power:10,color:"#ff875e",icon:"🚀"}
 ];
-
-const defaultSave = () => ({
-  money: 100,
-  inventory: ["starter-head","starter-torso","starter-arms","starter-legs"],
-  equipped: { Head:"starter-head", Torso:"starter-torso", Arms:"starter-arms", Legs:"starter-legs" }
-});
-
-let save = loadSave();
-let money = save.money;
-let inventory = save.inventory;
-let equipped = save.equipped;
-let health = 100;
-let damage = 10;
-let income = 1;
-let toastTimer;
-
-function loadSave() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(SAVE_KEY));
-    if (!parsed || !Array.isArray(parsed.inventory) || !parsed.equipped) return defaultSave();
-    return parsed;
-  } catch { return defaultSave(); }
+const starter = {money:100,inventory:["starter-head","starter-torso","starter-arms","starter-legs"],equipped:{Head:"starter-head",Torso:"starter-torso",Arms:"starter-arms",Legs:"starter-legs"}};
+function loadSave(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));return s&&Array.isArray(s.inventory)&&s.equipped?s:structuredClone(starter)}catch{return structuredClone(starter)}}
+let save=loadSave(),money=Number(save.money)||100,inventory=save.inventory,equipped=save.equipped;
+let health=100,damage=10,income=0,nearShop=false,toastTimer;
+function persist(){localStorage.setItem(SAVE_KEY,JSON.stringify({money,inventory,equipped}))}
+function part(id){return parts.find(p=>p.id===id)||parts[0]}
+function stats(){const active=Object.values(equipped).filter(Boolean).map(part);income=active.reduce((n,p)=>n+p.income,0);health=100+active.reduce((n,p)=>n+p.health,0);damage=10+active.reduce((n,p)=>n+p.power,0)}
+function updateStats(){stats();$("money").textContent=Math.floor(money).toLocaleString();$("health").textContent=health;$("healthFill").style.width="100%";$("damage").textContent=damage;$("income").textContent=income}
+function notify(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2200)}
+function renderInventory(){
+ const counts=new Map();inventory.forEach(id=>counts.set(id,(counts.get(id)||0)+1));
+ $("inventoryCount").textContent=inventory.length+" PARTS";
+ $("inventory").innerHTML=[...counts].map(([id,count])=>{const p=part(id),on=equipped[p.slot]===id;return '<div class="part-item"><span class="part-icon">'+p.icon+'</span><div class="part-info"><b>'+p.name+(count>1?" ×"+count:"")+'</b><small>'+p.rarity+' · '+p.slot+'</small></div><button class="equip-button" data-equip="'+id+'">'+(on?"ON":"EQUIP")+'</button></div>'}).join("")||'<div class="empty-state">Roll to find your first part!</div>';
+ $("inventory").querySelectorAll("[data-equip]").forEach(b=>b.onclick=()=>equip(b.dataset.equip));
+ $("equipped").innerHTML=["Head","Torso","Arms","Legs"].map(slot=>{const p=part(equipped[slot]);return '<div class="equip-slot"><span class="slot-icon">'+p.icon+'</span><b>'+slot+'</b><span>'+p.name+'</span></div>'}).join("");
 }
-function persist() {
-  save = { money, inventory, equipped };
-  localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+function equip(id){if(!inventory.includes(id))return;equipped[part(id).slot]=id;updateStats();renderInventory();persist();notify(part(id).name+" equipped!")}
+function roll(){
+ const total=parts.reduce((n,p)=>n+p.weight,0);let r=Math.random()*total,pick=parts[0];
+ for(const p of parts){r-=p.weight;if(r<=0){pick=p;break}}
+ inventory.push(pick.id);if(!equipped[pick.slot])equipped[pick.slot]=pick.id;
+ $("result").textContent=pick.icon+" "+pick.name+" — "+pick.rarity;
+ updateStats();renderInventory();persist();notify("You rolled "+pick.name+"!");
 }
-function notify(message) {
-  const toast = $("toast");
-  toast.textContent = message;
-  toast.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove("show"), 2300);
+$("rollButton").onclick=roll;
+$("openInventory").onclick=()=>$("inventoryModal").classList.remove("hidden");
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>$ (b.dataset.close).classList.add("hidden"));
+document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.add("hidden")}));
+function renderShop(){
+ const ids=["robot-head","crown-head","rock-torso","neon-torso","steel-arms","crystal-arms","runner-legs","rocket-legs"];
+ $("shopItems").innerHTML=ids.map(id=>{const p=part(id),owned=inventory.includes(id);return '<div class="shop-item"><span class="shop-icon">'+p.icon+'</span><div class="shop-copy"><b>'+p.name+'</b><small>'+p.rarity+' · +'+p.income+' coins/sec · +'+p.health+' HP</small></div><button class="buy-button" data-buy="'+id+'" '+(owned?"disabled":"")+'>'+(owned?"OWNED":p.price+" COINS")+'</button></div>'}).join("");
+ $("shopItems").querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>buy(b.dataset.buy));
 }
-function partById(id) { return partCatalog.find(p => p.id === id) || partCatalog[0]; }
-function calculateStats() {
-  const parts = Object.values(equipped).filter(Boolean).map(partById);
-  income = parts.reduce((n,p) => n + p.income, 0);
-  health = 100 + parts.reduce((n,p) => n + p.health, 0);
-  damage = 10 + parts.reduce((n,p) => n + p.power, 0);
+function buy(id){const p=part(id);if(inventory.includes(id))return notify("You already own this part!");if(money<p.price)return notify("Not enough coins! Equip income parts to earn coins.");money-=p.price;inventory.push(id);renderShop();renderInventory();updateStats();persist();notify("Bought "+p.name+"! Equip it from your bag.")}
+let canvas,ctx,w=0,h=0,dpr=1;
+const player={x:0,z:3,y:0,vy:0,walk:0};
+const keys={};
+function resize(){if(!canvas)return;const r=canvas.getBoundingClientRect();w=Math.max(1,r.width);h=Math.max(1,r.height);dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
+function project(x,y,z){const s=32;return {x:w/2+(x-z)*s*.72,y:h*.53+(x+z)*s*.36-y*s}}
+function poly(points,fill,stroke){ctx.beginPath();points.forEach((p,i)=>{const q=project(...p);if(!i)ctx.moveTo(q.x,q.y);else ctx.lineTo(q.x,q.y)});ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke()}}
+function block(x,y,z,ww,hh,dd,color){
+ const a=[x-ww/2,y,z-dd/2],b=[x+ww/2,y,z-dd/2],c=[x+ww/2,y,z+dd/2],d=[x-ww/2,y,z+dd/2];
+ const A=[a[0],y+hh,a[2]],B=[b[0],y+hh,b[2]],C=[c[0],y+hh,c[2]],D=[d[0],y+hh,d[2]];
+ poly([A,B,C,D],color);poly([A,D,d,a],shade(color,.72));poly([B,C,c,b],shade(color,.82));
 }
-function updateStats() {
-  calculateStats();
-  $("money").textContent = Math.floor(money).toLocaleString();
-  $("health").textContent = health;
-  const fill = $("healthFill");
-  if (fill) fill.style.width = "100%";
-  $("damage").textContent = damage;
-  $("income").textContent = income;
+function shade(hex,f){const n=parseInt(hex.slice(1),16),r=Math.min(255,((n>>16)&255)*f)|0,g=Math.min(255,((n>>8)&255)*f)|0,b=Math.min(255,(n&255)*f)|0;return 'rgb('+r+','+g+','+b+')'}
+function label(x,y,z,text,color="#fff",size=14){const p=project(x,y,z);ctx.font="900 "+size+"px Inter,Arial";ctx.textAlign="center";ctx.lineWidth=4;ctx.strokeStyle="#14243a";ctx.strokeText(text,p.x,p.y);ctx.fillStyle=color;ctx.fillText(text,p.x,p.y)}
+function drawWorld(){
+ ctx.fillStyle="#91bce0";ctx.fillRect(0,0,w,h);
+ // distant sky and ground horizon
+ const horizon=h*.43;const grad=ctx.createLinearGradient(0,horizon,0,h);grad.addColorStop(0,"#668eae");grad.addColorStop(1,"#294762");ctx.fillStyle=grad;ctx.fillRect(0,horizon,w,h-horizon);
+ // checker-like plaza ground
+ for(let x=-32;x<=32;x+=2)for(let z=-32;z<=32;z+=2){const p=project(x,0,z);const q=project(x+2,0,z);const r=project(x+2,0,z+2);const s=project(x,0,z+2);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.lineTo(r.x,r.y);ctx.lineTo(s.x,s.y);ctx.closePath();ctx.fillStyle=((x+z)/2%2===0)?"#456b83":"#41657d";ctx.fill()}
+ // paths and plaza disc
+ ctx.beginPath();for(let i=0;i<=48;i++){const a=i*Math.PI/24,p=project(Math.cos(a)*5.5,0,Math.sin(a)*5.5);if(!i)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)}ctx.closePath();ctx.fillStyle="#547d99";ctx.fill();ctx.strokeStyle="#a6d9f3";ctx.lineWidth=4;ctx.stroke();
+ // shop building at north of spawn
+ block(0,0,-12,8,.35,6,"#263d5a");block(0,.35,-14.7,7,3.8,.45,"#24517a");block(-3.3,.35,-12,.45,3.8,5.5,"#3272a5");block(3.3,.35,-12,.45,3.8,5.5,"#3272a5");block(0,4.15,-12,7.2,.45,6.1,"#17365c");block(0,.35,-10.5,6,.9,1,"#8b603d");block(0,4.7,-8.95,5.5,1.05,.2,"#ffcf61");label(0,5.2,-8.8,"BODY SHOP","#ffe18a",18);
+ // decorative pillars and trees
+ for(let i=0;i<8;i++){const a=i*Math.PI/4,x=Math.cos(a)*9,z=Math.sin(a)*9;block(x,0,z,1.1,2.2,1.1,i%2?"#355c82":"#426e96");block(x,2.2,z,1.35,.18,1.35,"#75a8d7")}
+ for(let i=0;i<12;i++){const a=i*Math.PI/6,x=Math.cos(a)*16,z=Math.sin(a)*16;block(x,0,z,.45,1.7,.45,"#79543b");const p=project(x,2.7,z);ctx.beginPath();ctx.arc(p.x,p.y,25,0,Math.PI*2);ctx.fillStyle="#3f9b75";ctx.fill();ctx.strokeStyle="#8bc69c";ctx.lineWidth=2;ctx.stroke()}
 }
-function rarityClass(rarity) { return rarity.toLowerCase(); }
-
-function renderInventory() {
-  const counts = new Map();
-  inventory.forEach(id => counts.set(id, (counts.get(id) || 0) + 1));
-  const entries = [...counts.entries()].map(([id,count]) => ({part:partById(id),count}));
-  $("inventoryCount").textContent = inventory.length + " PARTS";
-  $("inventory").innerHTML = entries.length ? entries.map(({part,count}) => {
-    const isEquipped = equipped[part.slot] === part.id;
-    return `<div class="part-item">
-      <span class="part-icon">${part.icon}</span>
-      <div class="part-info"><b>${part.name}${count > 1 ? " ×"+count : ""}</b><small class="${rarityClass(part.rarity)}">${part.rarity} · ${part.slot}</small></div>
-      <button class="equip-button" data-equip="${part.id}">${isEquipped ? "ON" : "EQUIP"}</button>
-    </div>`;
-  }).join("") : '<div class="empty-state">No parts yet. Try your first roll!</div>';
-  $("inventory").querySelectorAll("[data-equip]").forEach(button => {
-    button.addEventListener("click", () => equipPart(button.dataset.equip));
-  });
-  const slots = ["Head","Torso","Arms","Legs"];
-  $("equipped").innerHTML = slots.map(slot => {
-    const part = partById(equipped[slot]);
-    return `<div class="equip-slot"><span class="slot-icon">${part.icon}</span><b>${slot}</b><span>${part.name}</span></div>`;
-  }).join("");
+function drawAvatar(){
+ const x=player.x,z=player.z,y=player.y,head=part(equipped.Head),torso=part(equipped.Torso),arms=part(equipped.Arms),legs=part(equipped.Legs);
+ // shadow
+ const sh=project(x,0,z);ctx.beginPath();ctx.ellipse(sh.x,sh.y,25,10,0,0,Math.PI*2);ctx.fillStyle="#13283b66";ctx.fill();
+ const step=Math.sin(player.walk)*.18;
+ block(x-.3,.05+y,z+step,.48,1.05,.48,legs.color);block(x+.3,.05+y,z-step,.48,1.05,.48,legs.color);
+ block(x-.82,1.25+y,z,.38,1.05,.42,arms.color);block(x+.82,1.25+y,z,.38,1.05,.42,arms.color);
+ block(x,1.15+y,z,1.15,1.2,.62,torso.color);
+ if(torso.id==="neon-torso"){const p=project(x,1.65+y,z-.34);ctx.fillStyle="#c8ffff";ctx.fillRect(p.x-5,p.y-5,10,10)}
+ block(x,2.45+y,z,.9,.9,.9,head.color);
+ if(head.id==="crown-head"){block(x,3.35+y,z,.95,.18,.95,"#f4c64e");for(let i=-1;i<=1;i++)block(x+i*.3,3.53+y,z,.16,.35,.16,"#ffe28a")}
+ const face=project(x,2.7+y,z-.48);ctx.fillStyle="#17243a";ctx.fillRect(face.x-7,face.y-2,4,5);ctx.fillRect(face.x+4,face.y-2,4,5);
+ label(x,3.9+y,z,"YOU","#fff",11);
 }
-function equipPart(id) {
-  const part = partById(id);
-  if (!inventory.includes(id)) return;
-  equipped[part.slot] = id;
-  updateAvatar();
-  updateStats();
-  renderInventory();
-  persist();
-  notify(part.name + " equipped!");
+function draw(){
+ drawWorld();drawAvatar();
+ const shopDist=Math.hypot(player.x,player.z+12)<5.2;
+ if(shopDist!==nearShop){nearShop=shopDist;$("shopPrompt").classList.toggle("hidden",!nearShop)}
+ if(nearShop){const p=project(0,5.7,-12);ctx.font="900 13px Inter,Arial";ctx.textAlign="center";ctx.fillStyle="#ffe18a";ctx.fillText("PRESS E AT THE COUNTER",p.x,p.y)}
 }
-function rollPart() {
-  const total = partCatalog.reduce((sum,p) => sum + p.weight, 0);
-  let pick = Math.random() * total;
-  let selected = partCatalog[0];
-  for (const part of partCatalog) {
-    pick -= part.weight;
-    if (pick <= 0) { selected = part; break; }
-  }
-  inventory.push(selected.id);
-  $("result").textContent = selected.icon + "  " + selected.name + " — " + selected.rarity;
-  if (!equipped[selected.slot]) equipped[selected.slot] = selected.id;
-  renderInventory();
-  updateStats();
-  updateAvatar();
-  persist();
-  notify("You rolled " + selected.name + "!");
-}
-$("rollButton").addEventListener("click", rollPart);
-
-$("openInventory").addEventListener("click", () => $("inventoryModal").classList.remove("hidden"));
-document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => $(button.dataset.close).classList.add("hidden")));
-document.querySelectorAll(".modal").forEach(modal => modal.addEventListener("click", event => { if (event.target === modal) modal.classList.add("hidden"); }));
-
-function renderShop() {
-  const shopIds = ["robot-head","crown-head","rock-torso","neon-torso","steel-arms","crystal-arms","runner-legs","rocket-legs"];
-  $("shopItems").innerHTML = shopIds.map(id => {
-    const p = partById(id);
-    const owned = inventory.includes(id);
-    return `<div class="shop-item"><span class="shop-icon">${p.icon}</span><div class="shop-copy"><b>${p.name}</b><small class="${rarityClass(p.rarity)}">${p.rarity} · +${p.income} coins/sec · +${p.health} HP</small></div><button class="buy-button" data-buy="${id}" ${owned ? "disabled" : ""}>${owned ? "OWNED" : p.price+" COINS"}</button></div>`;
-  }).join("");
-  $("shopItems").querySelectorAll("[data-buy]").forEach(button => {
-    button.addEventListener("click", () => buyPart(button.dataset.buy));
-  });
-}
-function buyPart(id) {
-  const part = partById(id);
-  if (inventory.includes(id)) { notify("You already own this part!"); return; }
-  if (money < part.price) { notify("Not enough coins! Keep earning and try again."); return; }
-  money -= part.price;
-  inventory.push(id);
-  if (!equipped[part.slot]) equipped[part.slot] = id;
-  updateStats();
-  renderInventory();
-  updateAvatar();
-  persist();
-  renderShop();
-  notify("Bought " + part.name + "! Equip it from your bag.");
-}
-
-const mount = $("gameCanvas");
-let scene, camera, renderer, avatar, avatarParts = {}, clock, cameraTarget;
-let moveForward = false, moveBack = false, moveLeft = false, moveRight = false;
-let jumping = false, velocityY = 0, isRunning = false;
-const keys = {};
-const worldObjects = [];
-const groundY = 0;
-const playerPosition = new THREE.Vector3(0, 0, 3);
-const cameraOffset = new THREE.Vector3(0, 5.1, 8.2);
-
-function material(color, roughness=0.78, metalness=0) {
-  return new THREE.MeshStandardMaterial({ color, roughness, metalness });
-}
-function block(parent, name, size, position, color, matOptions={}) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material(color, matOptions.roughness ?? .78, matOptions.metalness ?? 0));
-  mesh.name = name;
-  mesh.position.set(...position);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  parent.add(mesh);
-  return mesh;
-}
-function createAvatar() {
-  avatar = new THREE.Group();
-  scene.add(avatar);
-  avatarParts.head = new THREE.Group();
-  avatarParts.torso = new THREE.Group();
-  avatarParts.arms = new THREE.Group();
-  avatarParts.legs = new THREE.Group();
-  avatar.add(avatarParts.head, avatarParts.torso, avatarParts.arms, avatarParts.legs);
-  updateAvatar();
-}
-function updateAvatar() {
-  if (!avatar) return;
-  Object.values(avatarParts).forEach(group => {
-    while (group.children.length) {
-      const child = group.children.pop();
-      child.geometry?.dispose();
-      if (Array.isArray(child.material)) child.material.forEach(m=>m.dispose()); else child.material?.dispose();
-      group.remove(child);
-    }
-  });
-  const head = partById(equipped.Head);
-  const torso = partById(equipped.Torso);
-  const arms = partById(equipped.Arms);
-  const legs = partById(equipped.Legs);
-
-  const headMesh = block(avatarParts.head, "head", [.9,.9,.9], [0,2.55,0], head.color);
-  if (head.shape === "crown") {
-    block(avatarParts.head, "crown-base", [.95,.18,.95], [0,3.05,0], 0xf4c64e, {metalness:.6});
-    for (let i=0;i<3;i++) block(avatarParts.head,"crown-point",[.17,.35,.17],[-.3+i*.3,3.28,0],0xffe28a,{metalness:.55});
-  }
-  if (head.id === "robot-head") headMesh.material.metalness=.65;
-  // Simple face, always attached to the front of the head.
-  const eyeMat = new THREE.MeshStandardMaterial({color:0x17243a,roughness:.35});
-  for (const x of [-.19,.19]) {
-    const eye = new THREE.Mesh(new THREE.BoxGeometry(.09,.1,.035), eyeMat);
-    eye.position.set(x,2.62,.46); avatarParts.head.add(eye);
-  }
-  block(avatarParts.torso,"torso",[1.15,1.2,.62],[0,1.48,0],torso.color,{metalness:torso.shape==="neon"?.45:0});
-  if (torso.shape === "neon") {
-    const core = new THREE.Mesh(new THREE.BoxGeometry(.36,.36,.08),new THREE.MeshStandardMaterial({color:0xc8ffff,emissive:0x21cbd0,emissiveIntensity:1.4}));
-    core.position.set(0,1.5,.36); avatarParts.torso.add(core);
-  }
-  for (const side of [-1,1]) {
-    const arm = block(avatarParts.arms,"arm",[.38,1.05,.42],[side*.82,1.52,0],arms.color,{metalness:arms.shape==="metal"?.65:0});
-    arm.userData.side = side;
-    if (arms.shape==="crystal") {
-      const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(.29),material(arms.color,.25,.25));
-      crystal.position.set(side*.82,1.52,0); avatarParts.arms.add(crystal);
-    }
-    block(avatarParts.legs,"leg",[.48,1.05,.48],[side*.3,.53,0],legs.color,{metalness:legs.shape==="rocket"?.45:0});
-    if (legs.shape==="rocket") {
-      const thruster = new THREE.Mesh(new THREE.ConeGeometry(.19,.35,8),material(0xffb35c,.4,.25));
-      thruster.rotation.x=Math.PI; thruster.position.set(side*.3,.02,0); avatarParts.legs.add(thruster);
-    }
-  }
-  avatarParts.head.position.y=0;
-}
-function addWorld() {
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(100,100),material(0x243d5a));
-  floor.rotation.x=-Math.PI/2; floor.position.y=-.08; floor.receiveShadow=true; scene.add(floor);
-  const grid = new THREE.GridHelper(100,50,0x466486,0x324c6a); grid.position.y=-.06; scene.add(grid);
-  // A small, colorful plaza gives the avatar landmarks to walk around.
-  const platform = new THREE.Mesh(new THREE.CylinderGeometry(5.4,5.4,.28,48),material(0x345678));
-  platform.position.set(0,.02,0); platform.receiveShadow=true; platform.castShadow=true; scene.add(platform);
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(5.1,.07,8,64),new THREE.MeshStandardMaterial({color:0x64b5ff,emissive:0x164b86}));
-  ring.rotation.x=Math.PI/2; ring.position.y=.19; scene.add(ring);
-  for (let i=0;i<8;i++) {
-    const a=i*Math.PI/4;
-    const x=Math.cos(a)*9,z=Math.sin(a)*9;
-    const base=block(scene,"plaza-pillar",[1.1,2.2,1.1],[x,1.1,z],i%2?0x355c82:0x426e96);
-    const cap=block(scene,"pillar-cap",[1.35,.18,1.35],[x,2.3,z],0x75a8d7);
-    worldObjects.push(base,cap);
-  }
-  for (let i=0;i<12;i++) {
-    const a=i*Math.PI/6;
-    const x=Math.cos(a)*16,z=Math.sin(a)*16;
-    const trunk=block(scene,"tree-trunk",[.45,1.7,.45],[x,.85,z],0x79543b);
-    const leaves=new THREE.Mesh(new THREE.IcosahedronGeometry(1.15,1),material(0x3f9b75));
-    leaves.position.set(x,2.15,z); leaves.castShadow=true; scene.add(leaves);
-    worldObjects.push(trunk,leaves);
-  }
-  // Physical upgrade shop: approach the counter and press E.
-  const shopX=0, shopZ=-12;
-  block(scene,"shop-floor",[8,.35,6],[shopX,.12,shopZ],0x263d5a);
-  block(scene,"shop-back",[7,3.8,.45],[shopX,2.05,shopZ-2.7],0x24517a);
-  block(scene,"shop-left-wall",[.45,3.8,5.5],[-3.3,2.05,shopZ],0x3272a5);
-  block(scene,"shop-right-wall",[.45,3.8,5.5],[3.3,2.05,shopZ],0x3272a5);
-  block(scene,"shop-roof",[7.2,.45,6.1],[shopX,4.05,shopZ],0x17365c);
-  block(scene,"shop-counter",[6,.9,1],[shopX,.75,shopZ+1.5],0x8b603d);
-  block(scene,"shop-sign",[5.5,1.05,.2],[shopX,4.9,shopZ+2.95],0xffcf61);
-  const signCanvas=document.createElement("canvas"); signCanvas.width=512; signCanvas.height=128;
-  const ctx=signCanvas.getContext("2d"); ctx.fillStyle="#17365c"; ctx.fillRect(0,0,512,128); ctx.fillStyle="#ffe18a"; ctx.font="bold 58px Arial"; ctx.textAlign="center"; ctx.fillText("BODY SHOP",256,84);
-  const signTexture=new THREE.CanvasTexture(signCanvas); const sign=new THREE.Mesh(new THREE.PlaneGeometry(5.2,.9),new THREE.MeshBasicMaterial({map:signTexture})); sign.position.set(shopX,4.9,shopZ+2.82); scene.add(sign);
-  block(scene,"shop-awning",[7,.22,1.1],[shopX,3.45,shopZ+2.4],0xffc957);
-  // Decorative raised pads.
-  for (let i=0;i<4;i++) {
-    const pad=block(scene,"display-pad",[2.4,.25,2.4],[Math.cos(i*Math.PI/2)*7,.08,Math.sin(i*Math.PI/2)*7],0x263d5a);
-    worldObjects.push(pad);
-  }
-}
-function init3D() {
-  // Wait until the full-screen game container has been laid out before creating WebGL.
-  requestAnimationFrame(() => start3D());
-}
-function start3D() {
-  try {
-    const width = Math.max(mount.clientWidth, window.innerWidth);
-    const height = Math.max(mount.clientHeight, window.innerHeight);
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x9bc4e8);
-    scene.fog = new THREE.Fog(0x9bc4e8,28,65);
-    camera = new THREE.PerspectiveCamera(65, width/height,.1,150);
-    renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.7));
-    renderer.setSize(width,height);
-    renderer.shadowMap.enabled=true;
-    renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-    renderer.outputColorSpace=THREE.SRGBColorSpace;
-    renderer.domElement.style.position = "absolute";
-    renderer.domElement.style.inset = "0";
-    renderer.domElement.style.zIndex = "0";
-    mount.appendChild(renderer.domElement);
-    const hemi=new THREE.HemisphereLight(0xe4f4ff,0x52627c,2.1); scene.add(hemi);
-    const sun=new THREE.DirectionalLight(0xffffff,2.4); sun.position.set(-8,16,9); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
-    addWorld();
-    createAvatar();
-    camera.position.copy(playerPosition).add(cameraOffset);
-    camera.lookAt(0,1.25,0);
-    clock=new THREE.Clock();
-    window.addEventListener("resize",resize3D);
-    if (window.ResizeObserver) new ResizeObserver(resize3D).observe(mount);
-    renderer.domElement.addEventListener("click",()=>renderer.domElement.focus());
-    animate();
-  } catch (error) {
-    console.error(error);
-    mount.innerHTML='<div style="position:absolute;inset:0;display:grid;place-items:center;padding:30px;text-align:center;color:white;background:linear-gradient(145deg,#294d72,#101e33);font:700 15px Inter">3D world could not start. Refresh the page. If this message stays, your browser may have WebGL disabled.</div>';
-  }
-}
-function resize3D() {
-  if (!renderer || !camera) return;
-  const w=Math.max(mount.clientWidth,window.innerWidth),h=Math.max(mount.clientHeight,window.innerHeight);
-  camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
-}
-function animate() {
-  requestAnimationFrame(animate);
-  const dt=Math.min(clock.getDelta(),.04);
-  if (avatar) {
-    const direction=new THREE.Vector3();
-    if (keys.KeyW||keys.ArrowUp) direction.z-=1;
-    if (keys.KeyS||keys.ArrowDown) direction.z+=1;
-    if (keys.KeyA||keys.ArrowLeft) direction.x-=1;
-    if (keys.KeyD||keys.ArrowRight) direction.x+=1;
-    if (direction.lengthSq()>0) {
-      direction.normalize();
-      const speed=(keys.ShiftLeft||keys.ShiftRight)?8.4:5.4;
-      playerPosition.addScaledVector(direction,speed*dt);
-      playerPosition.x=THREE.MathUtils.clamp(playerPosition.x,-23,23);
-      playerPosition.z=THREE.MathUtils.clamp(playerPosition.z,-23,23);
-      avatar.rotation.y=Math.atan2(direction.x,direction.z);
-      avatarParts.arms.rotation.x=Math.sin(performance.now()*.012)*.12;
-      avatarParts.legs.rotation.x=Math.sin(performance.now()*.012)*.2;
-    } else {
-      avatarParts.arms.rotation.x=THREE.MathUtils.damp(avatarParts.arms.rotation.x,0,8,dt);
-      avatarParts.legs.rotation.x=THREE.MathUtils.damp(avatarParts.legs.rotation.x,0,8,dt);
-    }
-    if ((keys.Space||keys.KeyJ) && !jumping) { velocityY=7.2; jumping=true; }
-    velocityY-=18*dt;
-    playerPosition.y+=velocityY*dt;
-    if (playerPosition.y<=groundY) { playerPosition.y=groundY; velocityY=0; jumping=false; }
-    avatar.position.copy(playerPosition);
-    checkShopDistance();
-    const target=playerPosition.clone().add(new THREE.Vector3(0,1.1,0));
-    const desired=playerPosition.clone().add(cameraOffset);
-    camera.position.lerp(desired,1-Math.pow(.001,dt));
-    camera.lookAt(target);
-  }
-  renderer.render(scene,camera);
-}
-window.addEventListener("keydown",e=>{
-  keys[e.code]=true;
-  if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)) e.preventDefault();
-});
-window.addEventListener("keyup",e=>{keys[e.code]=false;});
-window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
-
-let nearShop = false;
-function checkShopDistance() {
-  if (!avatar) return;
-  const close=Math.hypot(playerPosition.x,playerPosition.z+12)<5.2;
-  if (close !== nearShop) { nearShop=close; $("shopPrompt").classList.toggle("hidden",!nearShop); }
-}
-window.addEventListener("keydown",e=>{
-  if (e.code==="KeyE" && nearShop && $("shopModal").classList.contains("hidden")) { $("shopModal").classList.remove("hidden"); renderShop(); }
-});
-let lastIncomeTick=Date.now();
-setInterval(()=>{
-  if (income > 0) money+=income;
-  updateStats();
-  persist();
-},1000);
-
-renderShop();
-renderInventory();
-updateStats();
-init3D();
-notify("Find the BODY SHOP building · press E at the counter");
+let last=0;
+function frame(now){const dt=Math.min((now-last)/1000||0,.04);last=now;
+ let dx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
+ let dz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0);
+ if(dx||dz){const len=Math.hypot(dx,dz);dx/=len;dz/=len;const speed=(keys.ShiftLeft||keys.ShiftRight)?9:5.5;player.x=Math.max(-24,Math.min(24,player.x+dx*speed*dt));player.z=Math.max(-24,Math.min(24,player.z+dz*speed*dt));player.walk+=dt*10}
+ if((keys.Space||keys.KeyJ)&&player.y===0)player.vy=7;
+ player.vy-=18*dt;player.y=Math.max(0,player.y+player.vy*dt);if(player.y===0)player.vy=0;
+ draw();requestAnimationFrame(frame)}
+window.addEventListener("keydown",e=>{keys[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="KeyE"&&nearShop){$("shopModal").classList.remove("hidden");renderShop()}});
+window.addEventListener("keyup",e=>keys[e.code]=false);window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
+$("shopModal").classList.add("hidden");
+canvas=document.createElement("canvas");canvas.id="worldCanvas";canvas.style.cssText="display:block;width:100%;height:100%;outline:none";$("gameCanvas").replaceChildren(canvas);ctx=canvas.getContext("2d");resize();window.addEventListener("resize",resize);
+renderShop();renderInventory();updateStats();notify("Welcome! Use WASD to move. Walk to the BODY SHOP and press E.");
+setInterval(()=>{if(income>0){money+=income;updateStats();persist()}},1000);
+requestAnimationFrame(frame);
