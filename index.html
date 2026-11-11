@@ -1,55 +1,73 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101827">
   <title>Body Part RNG</title>
   <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}
+  </script>
 </head>
 <body>
-  <header>
-    <h1>BODY PART RNG</h1>
-    <div id="playerCount">Players online: 1</div>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">B</span><div><strong>BODY PART RNG</strong><small>BUILD YOUR BEST AVATAR</small></div></div>
+    <div class="top-stats">
+      <div class="stat"><span>COINS</span><b id="money">0</b></div>
+      <div class="stat"><span>HEALTH</span><b id="health">100</b></div>
+      <div class="stat"><span>POWER</span><b id="damage">10</b></div>
+      <div class="stat"><span>COINS / SEC</span><b id="income">1</b></div>
+    </div>
   </header>
 
-  <main>
-    <section class="stats">
-      <div>💰 Money: <span id="money">0</span></div>
-      <div>❤️ Health: <span id="health">100</span></div>
-      <div>⚔️ Damage: <span id="damage">10</span></div>
-      <div>💵 Per Second: <span id="income">1</span></div>
+  <main class="game-layout">
+    <section class="world-panel">
+      <div id="gameCanvas" aria-label="3D game world"></div>
+      <div class="world-title"><span class="live-dot"></span> MAIN PLAZA <small>YOUR WORLD</small></div>
+      <div class="world-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> MOVE <span>·</span> <kbd>SPACE</kbd> JUMP <span>·</span> <kbd>SHIFT</kbd> RUN</div>
+      <div id="toast" class="toast">Welcome! Roll a part to get started.</div>
     </section>
 
-    <section class="character">
-      <div class="avatar">🧍</div>
-      <h2>Your Character</h2>
-      <div id="equipped">No special parts equipped</div>
-    </section>
+    <aside class="side-panel">
+      <section class="card roll-card">
+        <div class="section-heading"><div><small>LUCKY MACHINE</small><h2>Part Roll</h2></div><span class="pill">RNG</span></div>
+        <p>Roll a random body part. Equip it to change how your avatar looks and boost your stats.</p>
+        <button id="rollButton" class="primary-button">ROLL PART <span>✦</span></button>
+        <div id="result" class="result">Your next part is waiting...</div>
+      </section>
 
-    <section class="roll">
-      <div id="result">Ready to roll?</div>
-      <button id="rollButton">ROLL!</button>
-    </section>
+      <section class="card">
+        <div class="section-heading"><div><small>YOUR LOADOUT</small><h2>Equipped Parts</h2></div><span id="equippedCount" class="pill">0 / 6</span></div>
+        <div id="equipped" class="equipment-grid"></div>
+      </section>
 
-    <section class="inventory">
-      <h2>Inventory</h2>
-      <div id="inventory">No body parts yet.</div>
-    </section>
+      <section class="card">
+        <div class="section-heading"><div><small>COLLECTION</small><h2>Inventory</h2></div><span id="inventoryCount" class="pill">0 PARTS</span></div>
+        <div id="inventory" class="inventory-list"><div class="empty-state">No parts yet. Try your first roll!</div></div>
+      </section>
 
-    <section class="multiplayer">
-      <h2>Multiplayer Lobby</h2>
-      <input id="roomCode" placeholder="Enter room code">
-      <button id="joinRoom">Join Room</button>
-      <button id="createRoom">Create Room</button>
-      <div id="lobbyStatus">Not connected</div>
-    </section>
+      <section class="card shop-card">
+        <div class="section-heading"><div><small>SPEND YOUR COINS</small><h2>Shop</h2></div><span class="pill gold">SHOP</span></div>
+        <div id="shopItems" class="shop-list"></div>
+      </section>
+    </aside>
   </main>
 
-  <script src="game.js"></script>
+  <section class="bottom-bar">
+    <div class="multiplayer-box">
+      <div><small>PLAY WITH FRIENDS</small><strong>Multiplayer Room</strong></div>
+      <input id="roomCode" maxlength="6" inputmode="numeric" placeholder="6-digit code">
+      <button id="createRoom" class="secondary-button">Create room</button>
+      <button id="joinRoom" class="secondary-button">Join</button>
+      <span id="playerCount" class="online-count">Solo</span>
+    </div>
+    <div id="lobbyStatus" class="lobby-status">Not in a room yet</div>
+    <div class="save-note">Progress saves automatically on this device.</div>
+  </section>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script src="multiplayer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="multiplayer.js"></script>
+  <script type="module" src="game.js"></script>
 </body>
 </html>
