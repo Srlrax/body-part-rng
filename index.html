@@ -6,9 +6,6 @@
   <meta name="theme-color" content="#101827">
   <title>Body Part RNG</title>
   <link rel="stylesheet" href="style.css">
-  <script type="importmap">
-    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}
-  </script>
 </head>
 <body>
   <main class="game-screen">
@@ -21,12 +18,13 @@
         <div class="health-track"><div id="healthFill" class="health-fill"></div></div>
       </div>
       <div class="hud-actions">
-        <button id="openShop" class="hud-button shop-hud"><span>🛒</span><b>SHOP</b></button>
+        <div class="hud-button shop-hud shop-direction"><span>🛒</span><b>FIND SHOP</b></div>
         <button id="openInventory" class="hud-button"><span>🎒</span><b>BAG</b></button>
       </div>
     </div>
 
     <div class="game-brand"><span class="brand-dot"></span> BODY PART RNG <small>PLAZA</small></div>
+    <div id="shopPrompt" class="shop-prompt hidden">PRESS <kbd>E</kbd> TO OPEN BODY SHOP</div>
     <div class="world-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> MOVE <span>·</span> <kbd>SPACE</kbd> JUMP <span>·</span> <kbd>SHIFT</kbd> RUN</div>
 
     <div class="bottom-controls">
