@@ -62,6 +62,8 @@ function updateStats() {
   calculateStats();
   $("money").textContent = Math.floor(money).toLocaleString();
   $("health").textContent = health;
+  const fill = $("healthFill");
+  if (fill) fill.style.width = "100%";
   $("damage").textContent = damage;
   $("income").textContent = income;
 }
@@ -84,7 +86,6 @@ function renderInventory() {
     button.addEventListener("click", () => equipPart(button.dataset.equip));
   });
   const slots = ["Head","Torso","Arms","Legs"];
-  $("equippedCount").textContent = slots.filter(slot => equipped[slot]).length + " / 4";
   $("equipped").innerHTML = slots.map(slot => {
     const part = partById(equipped[slot]);
     return `<div class="equip-slot"><span class="slot-icon">${part.icon}</span><b>${slot}</b><span>${part.name}</span></div>`;
@@ -118,12 +119,17 @@ function rollPart() {
   notify("You rolled " + selected.name + "!");
 }
 $("rollButton").addEventListener("click", rollPart);
+$("openShop").addEventListener("click", () => $("shopModal").classList.remove("hidden"));
+$("openInventory").addEventListener("click", () => $("inventoryModal").classList.remove("hidden"));
+document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => $(button.dataset.close).classList.add("hidden")));
+document.querySelectorAll(".modal").forEach(modal => modal.addEventListener("click", event => { if (event.target === modal) modal.classList.add("hidden"); }));
 
 function renderShop() {
   const shopIds = ["robot-head","crown-head","rock-torso","neon-torso","steel-arms","crystal-arms","runner-legs","rocket-legs"];
   $("shopItems").innerHTML = shopIds.map(id => {
     const p = partById(id);
-    return `<div class="shop-item"><span class="shop-icon">${p.icon}</span><div class="shop-copy"><b>${p.name}</b><small class="${rarityClass(p.rarity)}">${p.rarity} · +${p.income} coins/sec</small></div><button class="buy-button" data-buy="${id}">${p.price} COINS</button></div>`;
+    const owned = inventory.includes(id);
+    return `<div class="shop-item"><span class="shop-icon">${p.icon}</span><div class="shop-copy"><b>${p.name}</b><small class="${rarityClass(p.rarity)}">${p.rarity} · +${p.income} coins/sec · +${p.health} HP</small></div><button class="buy-button" data-buy="${id}" ${owned ? "disabled" : ""}>${owned ? "OWNED" : p.price+" COINS"}</button></div>`;
   }).join("");
   $("shopItems").querySelectorAll("[data-buy]").forEach(button => {
     button.addEventListener("click", () => buyPart(button.dataset.buy));
@@ -131,6 +137,7 @@ function renderShop() {
 }
 function buyPart(id) {
   const part = partById(id);
+  if (inventory.includes(id)) { notify("You already own this part!"); return; }
   if (money < part.price) { notify("Not enough coins! Keep earning and try again."); return; }
   money -= part.price;
   inventory.push(id);
@@ -139,7 +146,8 @@ function buyPart(id) {
   renderInventory();
   updateAvatar();
   persist();
-  notify("Bought " + part.name + "! Equip it from your inventory.");
+  renderShop();
+  notify("Bought " + part.name + "! Equip it from your bag.");
 }
 
 const mount = $("gameCanvas");
@@ -194,7 +202,7 @@ function updateAvatar() {
     block(avatarParts.head, "crown-base", [.95,.18,.95], [0,3.05,0], 0xf4c64e, {metalness:.6});
     for (let i=0;i<3;i++) block(avatarParts.head,"crown-point",[.17,.35,.17],[-.3+i*.3,3.28,0],0xffe28a,{metalness:.55});
   }
-  if (head.shape === "robot-head") headMesh.material.metalness=.65;
+  if (head.id === "robot-head") headMesh.material.metalness=.65;
   // Simple face, always attached to the front of the head.
   const eyeMat = new THREE.MeshStandardMaterial({color:0x17243a,roughness:.35});
   for (const x of [-.19,.19]) {
