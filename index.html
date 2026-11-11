@@ -18,14 +18,14 @@
         <div class="health-track"><div id="healthFill" class="health-fill"></div></div>
       </div>
       <div class="hud-actions">
-        <div class="hud-button shop-hud shop-direction"><span>🛒</span><b>FIND SHOP</b></div>
+        <div class="hud-button shop-hud shop-direction"><span>🛒</span><b>UPGRADE SHOP</b></div>
         <button id="openInventory" class="hud-button"><span>🎒</span><b>BAG</b></button>
       </div>
     </div>
 
     <div class="game-brand"><span class="brand-dot"></span> BODY PART RNG <small>PLAZA</small></div>
-    <div id="shopPrompt" class="shop-prompt hidden">PRESS <kbd>E</kbd> TO OPEN BODY SHOP</div>
-    <div class="world-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> MOVE <span>·</span> <kbd>SPACE</kbd> JUMP <span>·</span> <kbd>SHIFT</kbd> RUN</div>
+    <div id="shopPrompt" class="shop-prompt hidden">PRESS <kbd>E</kbd> TO OPEN UPGRADE SHOP</div>
+    <div class="world-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> MOVE <span>·</span> <kbd>SPACE</kbd> JUMP <span>·</span> <kbd>SHIFT</kbd> RUN <span>·</span> DRAG TO TURN</div>
 
     <div class="bottom-controls">
       <div class="quick-stats"><span>⚔ <b id="damage">10</b> POWER</span><span>⌁ <b id="income">5</b> / SEC</span></div>
@@ -54,8 +54,8 @@
   </main>
 
   <div class="hidden-data" aria-hidden="true"><span id="playerCount">Solo</span><span id="lobbyStatus">Not in a room yet</span><input id="roomCode"><button id="createRoom">Create</button><button id="joinRoom">Join</button></div>
-  <script src="game.js?v=20261111b" defer></script>
+  <script src="game.js?v=20261111d" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="multiplayer.js?v=20261111b" defer></script>
+  <script src="multiplayer.js?v=20261111d" defer></script>
 </body>
 </html>
