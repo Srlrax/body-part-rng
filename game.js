@@ -18,10 +18,11 @@ const parts = [
 const starter = {money:100,inventory:["starter-head","starter-torso","starter-arms","starter-legs"],equipped:{Head:"starter-head",Torso:"starter-torso",Arms:"starter-arms",Legs:"starter-legs"}};
 function loadSave(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));return s&&Array.isArray(s.inventory)&&s.equipped?s:structuredClone(starter)}catch{return structuredClone(starter)}}
 let save=loadSave(),money=Number(save.money)||100,inventory=save.inventory,equipped=save.equipped;
+let upgrades={speed:0,luck:0,coins:0,...(save.upgrades||{})};
 let health=100,damage=10,income=0,nearShop=false,toastTimer;
-function persist(){localStorage.setItem(SAVE_KEY,JSON.stringify({money,inventory,equipped}))}
+function persist(){localStorage.setItem(SAVE_KEY,JSON.stringify({money,inventory,equipped,upgrades}))}
 function part(id){return parts.find(p=>p.id===id)||parts[0]}
-function stats(){const active=Object.values(equipped).filter(Boolean).map(part);income=active.reduce((n,p)=>n+p.income,0);health=100+active.reduce((n,p)=>n+p.health,0);damage=10+active.reduce((n,p)=>n+p.power,0)}
+function stats(){const active=Object.values(equipped).filter(Boolean).map(part);income=Math.floor(active.reduce((n,p)=>n+p.income,0)*(1+upgrades.coins*.25));health=100+active.reduce((n,p)=>n+p.health,0);damage=10+active.reduce((n,p)=>n+p.power,0)}
 function updateStats(){stats();$("money").textContent=Math.floor(money).toLocaleString();$("health").textContent=health;$("healthFill").style.width="100%";$("damage").textContent=damage;$("income").textContent=income}
 function notify(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2200)}
 function renderInventory(){
@@ -33,8 +34,9 @@ function renderInventory(){
 }
 function equip(id){if(!inventory.includes(id))return;equipped[part(id).slot]=id;updateStats();renderInventory();persist();notify(part(id).name+" equipped!")}
 function roll(){
- const total=parts.reduce((n,p)=>n+p.weight,0);let r=Math.random()*total,pick=parts[0];
- for(const p of parts){r-=p.weight;if(r<=0){pick=p;break}}
+ const weightOf=p=>p.weight*(p.rarity==="Common"?1:p.rarity==="Rare"?1+upgrades.luck*.25:1+upgrades.luck*.25);
+ const total=parts.reduce((n,p)=>n+weightOf(p),0);let r=Math.random()*total,pick=parts[0];
+ for(const p of parts){r-=weightOf(p);if(r<=0){pick=p;break}}
  inventory.push(pick.id);if(!equipped[pick.slot])equipped[pick.slot]=pick.id;
  $("result").textContent=pick.icon+" "+pick.name+" — "+pick.rarity;
  updateStats();renderInventory();persist();notify("You rolled "+pick.name+"!");
@@ -43,17 +45,23 @@ $("rollButton").onclick=roll;
 $("openInventory").onclick=()=>$("inventoryModal").classList.remove("hidden");
 document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>$ (b.dataset.close).classList.add("hidden"));
 document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.add("hidden")}));
+const upgradeInfo=[
+ {id:"speed",name:"Sprint Boots",icon:"👟",description:"+1.5 movement speed per level",base:100,max:3},
+ {id:"luck",name:"Lucky Charm",icon:"🍀",description:"+25% rare-part roll weight per level",base:150,max:3},
+ {id:"coins",name:"Coin Multiplier",icon:"💰",description:"+25% coins per second per level",base:200,max:3}
+];
 function renderShop(){
- const ids=["robot-head","crown-head","rock-torso","neon-torso","steel-arms","crystal-arms","runner-legs","rocket-legs"];
- $("shopItems").innerHTML=ids.map(id=>{const p=part(id),owned=inventory.includes(id);return '<div class="shop-item"><span class="shop-icon">'+p.icon+'</span><div class="shop-copy"><b>'+p.name+'</b><small>'+p.rarity+' · +'+p.income+' coins/sec · +'+p.health+' HP</small></div><button class="buy-button" data-buy="'+id+'" '+(owned?"disabled":"")+'>'+(owned?"OWNED":p.price+" COINS")+'</button></div>'}).join("");
- $("shopItems").querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>buy(b.dataset.buy));
+ $("shopItems").innerHTML=upgradeInfo.map(u=>{const level=upgrades[u.id],price=u.base*(level+1),maxed=level>=u.max;return '<div class="shop-item"><span class="shop-icon">'+u.icon+'</span><div class="shop-copy"><b>'+u.name+' · Lv. '+level+'</b><small>'+u.description+'</small></div><button class="buy-button" data-upgrade="'+u.id+'" '+(maxed?"disabled":"")+'>'+(maxed?"MAX LEVEL":price+" COINS")+'</button></div>'}).join("");
+ $("shopItems").querySelectorAll("[data-upgrade]").forEach(b=>b.onclick=()=>buyUpgrade(b.dataset.upgrade));
 }
-function buy(id){const p=part(id);if(inventory.includes(id))return notify("You already own this part!");if(money<p.price)return notify("Not enough coins! Equip income parts to earn coins.");money-=p.price;inventory.push(id);renderShop();renderInventory();updateStats();persist();notify("Bought "+p.name+"! Equip it from your bag.")}
+function buyUpgrade(id){const u=upgradeInfo.find(x=>x.id===id);if(!u)return;const level=upgrades[id],price=u.base*(level+1);if(level>=u.max)return notify("That upgrade is already maxed!");if(money<price)return notify("Not enough coins yet!");money-=price;upgrades[id]++;updateStats();renderShop();persist();notify(u.name+" upgraded to level "+upgrades[id]+"!")}
+
 let canvas,ctx,w=0,h=0,dpr=1;
 const player={x:0,z:3,y:0,vy:0,walk:0};
 const keys={};
 function resize(){if(!canvas)return;const r=canvas.getBoundingClientRect();w=Math.max(1,r.width);h=Math.max(1,r.height);dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
-function project(x,y,z){const s=32;return {x:w/2+(x-z)*s*.72,y:h*.53+(x+z)*s*.36-y*s}}
+// Follow camera: keep the avatar near the lower middle while the plaza moves around it.
+function project(x,y,z){const rx=x-player.x,rz=z-player.z;const depth=Math.max(.62,Math.min(1.25,1+rz*.012));const s=31*depth;return {x:w/2+(rx-rz)*s*.72,y:h*.68+(rx+rz)*s*.25-y*s}}
 function poly(points,fill,stroke){ctx.beginPath();points.forEach((p,i)=>{const q=project(...p);if(!i)ctx.moveTo(q.x,q.y);else ctx.lineTo(q.x,q.y)});ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke()}}
 function block(x,y,z,ww,hh,dd,color){
  const a=[x-ww/2,y,z-dd/2],b=[x+ww/2,y,z-dd/2],c=[x+ww/2,y,z+dd/2],d=[x-ww/2,y,z+dd/2];
@@ -67,7 +75,7 @@ function drawWorld(){
  // distant sky and ground horizon
  const horizon=h*.43;const grad=ctx.createLinearGradient(0,horizon,0,h);grad.addColorStop(0,"#668eae");grad.addColorStop(1,"#294762");ctx.fillStyle=grad;ctx.fillRect(0,horizon,w,h-horizon);
  // checker-like plaza ground
- for(let x=-32;x<=32;x+=2)for(let z=-32;z<=32;z+=2){const p=project(x,0,z);const q=project(x+2,0,z);const r=project(x+2,0,z+2);const s=project(x,0,z+2);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.lineTo(r.x,r.y);ctx.lineTo(s.x,s.y);ctx.closePath();ctx.fillStyle=((x+z)/2%2===0)?"#456b83":"#41657d";ctx.fill()}
+ for(let x=Math.floor(player.x)-32;x<=Math.floor(player.x)+32;x+=2)for(let z=Math.floor(player.z)-32;z<=Math.floor(player.z)+32;z+=2){const p=project(x,0,z);const q=project(x+2,0,z);const r=project(x+2,0,z+2);const s=project(x,0,z+2);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.lineTo(r.x,r.y);ctx.lineTo(s.x,s.y);ctx.closePath();ctx.fillStyle=((x+z)/2%2===0)?"#456b83":"#41657d";ctx.fill()}
  // paths and plaza disc
  ctx.beginPath();for(let i=0;i<=48;i++){const a=i*Math.PI/24,p=project(Math.cos(a)*5.5,0,Math.sin(a)*5.5);if(!i)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)}ctx.closePath();ctx.fillStyle="#547d99";ctx.fill();ctx.strokeStyle="#a6d9f3";ctx.lineWidth=4;ctx.stroke();
  // shop building at north of spawn
@@ -100,7 +108,7 @@ let last=0;
 function frame(now){const dt=Math.min((now-last)/1000||0,.04);last=now;
  let dx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
  let dz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0);
- if(dx||dz){const len=Math.hypot(dx,dz);dx/=len;dz/=len;const speed=(keys.ShiftLeft||keys.ShiftRight)?9:5.5;player.x=Math.max(-24,Math.min(24,player.x+dx*speed*dt));player.z=Math.max(-24,Math.min(24,player.z+dz*speed*dt));player.walk+=dt*10}
+ if(dx||dz){const len=Math.hypot(dx,dz);dx/=len;dz/=len;const baseSpeed=5.5+upgrades.speed*1.5;const speed=(keys.ShiftLeft||keys.ShiftRight)?baseSpeed*1.55:baseSpeed;player.x=Math.max(-24,Math.min(24,player.x+dx*speed*dt));player.z=Math.max(-24,Math.min(24,player.z+dz*speed*dt));player.walk+=dt*10}
  if((keys.Space||keys.KeyJ)&&player.y===0)player.vy=7;
  player.vy-=18*dt;player.y=Math.max(0,player.y+player.vy*dt);if(player.y===0)player.vy=0;
  draw();requestAnimationFrame(frame)}
