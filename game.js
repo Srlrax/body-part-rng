@@ -1,10 +1,10 @@
-import * as THREE from "three";
+import * as THREE from "https://esm.sh/three@0.180.0";
 
 const $ = (id) => document.getElementById(id);
 const SAVE_KEY = "bodyPartRngSaveV2";
 
 const partCatalog = [
-  { id:"starter-head", name:"Starter Head", slot:"Head", rarity:"Common", weight:38, price:0, income:1, health:0, power:0, color:0xf1c7a0, icon:"🙂", shape:"box" },
+  { id:"starter-head", name:"Starter Head", slot:"Head", rarity:"Common", weight:38, price:0, income:0, health:0, power:0, color:0xf1c7a0, icon:"🙂", shape:"box" },
   { id:"robot-head", name:"Robot Head", slot:"Head", rarity:"Rare", weight:14, price:85, income:4, health:10, power:2, color:0x8da9c7, icon:"🤖", shape:"box" },
   { id:"crown-head", name:"Royal Crown", slot:"Head", rarity:"Epic", weight:5, price:240, income:12, health:20, power:5, color:0xf4c64e, icon:"👑", shape:"crown" },
   { id:"starter-torso", name:"Starter Torso", slot:"Torso", rarity:"Common", weight:38, price:0, income:1, health:0, power:0, color:0x3978d4, icon:"🟦", shape:"box" },
@@ -54,7 +54,7 @@ function notify(message) {
 function partById(id) { return partCatalog.find(p => p.id === id) || partCatalog[0]; }
 function calculateStats() {
   const parts = Object.values(equipped).filter(Boolean).map(partById);
-  income = 1 + parts.reduce((n,p) => n + p.income, 0);
+  income = parts.reduce((n,p) => n + p.income, 0);
   health = 100 + parts.reduce((n,p) => n + p.health, 0);
   damage = 10 + parts.reduce((n,p) => n + p.power, 0);
 }
@@ -119,7 +119,7 @@ function rollPart() {
   notify("You rolled " + selected.name + "!");
 }
 $("rollButton").addEventListener("click", rollPart);
-$("openShop").addEventListener("click", () => $("shopModal").classList.remove("hidden"));
+
 $("openInventory").addEventListener("click", () => $("inventoryModal").classList.remove("hidden"));
 document.querySelectorAll("[data-close]").forEach(button => button.addEventListener("click", () => $(button.dataset.close).classList.add("hidden")));
 document.querySelectorAll(".modal").forEach(modal => modal.addEventListener("click", event => { if (event.target === modal) modal.classList.add("hidden"); }));
@@ -253,7 +253,7 @@ function addWorld() {
     leaves.position.set(x,2.15,z); leaves.castShadow=true; scene.add(leaves);
     worldObjects.push(trunk,leaves);
   }
-  // Decorative raised pads.
+  // Physical upgrade shop: approach the counter and press E.\n  const shopX=0, shopZ=-12;\n  block(scene,"shop-floor",[8,.35,6],[shopX,.12,shopZ],0x263d5a);\n  block(scene,"shop-back",[7,3.8,.45],[shopX,2.05,shopZ-2.7],0x24517a);\n  block(scene,"shop-left-wall",[.45,3.8,5.5],[-3.3,2.05,shopZ],0x3272a5);\n  block(scene,"shop-right-wall",[.45,3.8,5.5],[3.3,2.05,shopZ],0x3272a5);\n  block(scene,"shop-roof",[7.2,.45,6.1],[shopX,4.05,shopZ],0x17365c);\n  block(scene,"shop-counter",[6,.9,1],[shopX,.75,shopZ+1.5],0x8b603d);\n  block(scene,"shop-sign",[5.5,1.05,.2],[shopX,4.9,shopZ+2.95],0xffcf61);\n  const signCanvas=document.createElement("canvas"); signCanvas.width=512; signCanvas.height=128;\n  const ctx=signCanvas.getContext("2d"); ctx.fillStyle="#17365c"; ctx.fillRect(0,0,512,128); ctx.fillStyle="#ffe18a"; ctx.font="bold 58px Arial"; ctx.textAlign="center"; ctx.fillText("BODY SHOP",256,84);\n  const signTexture=new THREE.CanvasTexture(signCanvas); const sign=new THREE.Mesh(new THREE.PlaneGeometry(5.2,.9),new THREE.MeshBasicMaterial({map:signTexture})); sign.position.set(shopX,4.9,shopZ+2.82); scene.add(sign);\n  block(scene,"shop-awning",[7,.22,1.1],[shopX,3.45,shopZ+2.4],0xffc957);\n  // Decorative raised pads.
   for (let i=0;i<4;i++) {
     const pad=block(scene,"display-pad",[2.4,.25,2.4],[Math.cos(i*Math.PI/2)*7,.08,Math.sin(i*Math.PI/2)*7],0x263d5a);
     worldObjects.push(pad);
@@ -328,7 +328,7 @@ function animate() {
     velocityY-=18*dt;
     playerPosition.y+=velocityY*dt;
     if (playerPosition.y<=groundY) { playerPosition.y=groundY; velocityY=0; jumping=false; }
-    avatar.position.copy(playerPosition);
+    avatar.position.copy(playerPosition);\n    checkShopDistance();
     const target=playerPosition.clone().add(new THREE.Vector3(0,1.1,0));
     const desired=playerPosition.clone().add(cameraOffset);
     camera.position.lerp(desired,1-Math.pow(.001,dt));
@@ -343,9 +343,9 @@ window.addEventListener("keydown",e=>{
 window.addEventListener("keyup",e=>{keys[e.code]=false;});
 window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
 
-let lastIncomeTick=Date.now();
+let nearShop = false;\nfunction checkShopDistance() {\n  if (!avatar) return;\n  const close=Math.hypot(playerPosition.x,playerPosition.z+12)<5.2;\n  if (close !== nearShop) { nearShop=close; $("shopPrompt").classList.toggle("hidden",!nearShop); }\n}\nwindow.addEventListener("keydown",e=>{\n  if (e.code==="KeyE" && nearShop && $("shopModal").classList.contains("hidden")) { $("shopModal").classList.remove("hidden"); renderShop(); }\n});\nlet lastIncomeTick=Date.now();
 setInterval(()=>{
-  money+=income;
+  if (income > 0) money+=income;
   updateStats();
   persist();
 },1000);
@@ -354,4 +354,4 @@ renderShop();
 renderInventory();
 updateStats();
 init3D();
-notify("WASD to move · Space to jump · Shift to run");
+notify("Find the BODY SHOP building · press E at the counter");
