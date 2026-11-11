@@ -1,0 +1,87 @@
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #10131c;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+header {
+  background: #191f2d;
+  padding: 20px;
+  border-bottom: 2px solid #3979ff;
+}
+
+h1 {
+  color: #66a0ff;
+  letter-spacing: 3px;
+}
+
+main {
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.stats div, .character, .inventory, .multiplayer, .roll {
+  background: #1b2231;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 18px;
+}
+
+.avatar {
+  font-size: 100px;
+}
+
+button {
+  background: #3979ff;
+  border: none;
+  color: white;
+  padding: 13px 25px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  margin: 5px;
+}
+
+button:hover {
+  background: #225bd1;
+}
+
+#rollButton {
+  font-size: 25px;
+  padding: 18px 55px;
+}
+
+input {
+  padding: 13px;
+  border-radius: 8px;
+  border: none;
+  margin: 5px;
+}
+
+#result {
+  margin: 20px;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.part {
+  background: #293449;
+  padding: 12px;
+  margin: 8px;
+  border-radius: 8px;
+}
