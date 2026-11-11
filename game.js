@@ -1,5 +1,4 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { RoundedBoxGeometry } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/geometries/RoundedBoxGeometry.js";
 const $=id=>document.getElementById(id);
 const SAVE_KEY="bodyPartRngSaveV2";
 const parts=[
@@ -26,10 +25,10 @@ function updateStats(){stats();$("money").textContent=Math.floor(money).toLocale
 function updateQuest(){$("questFill").style.width=Math.min(100,questProgress/5*100)+"%";$("questCount").textContent=Math.min(questProgress,5)+" / 5"}
 let player,scene,camera,renderer,clock,avatarRoot,bodyParts={},shopPosition=new THREE.Vector3(0,0,-12),cameraYaw=0,cameraPitch=.22,cameraDistance=7,keys={},rollBusy=false;
 const mat=(color,roughness=.72,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
-function box(parent,name,size,color,pos,opts={}){const geometry=opts.rounded?new RoundedBoxGeometry(...size,3,opts.radius??.09):new THREE.BoxGeometry(...size);const m=new THREE.Mesh(geometry,mat(color,opts.roughness??.72,opts.metalness??0));m.name=name;m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+function box(parent,name,size,color,pos,opts={}){const geometry=new THREE.BoxGeometry(...size);const m=new THREE.Mesh(geometry,mat(color,opts.roughness??.72,opts.metalness??0));m.name=name;m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
 function sphere(parent,name,r,color,pos,scale=[1,1,1],metalness=0){const m=new THREE.Mesh(new THREE.SphereGeometry(r,24,16),mat(color,.48,metalness));m.name=name;m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;parent.add(m);return m}
 function cylinder(parent,name,rt,rb,h,color,pos,segments=16){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,segments),mat(color));m.name=name;m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-function makeLimb(parent,name,color,top,bottom,r=.15){const pivot=new THREE.Group();pivot.position.set(...top);parent.add(pivot);const len=Math.hypot(top[0]-bottom[0],top[1]-bottom[1],top[2]-bottom[2]);const width=r*2.15;const mesh=new THREE.Mesh(new RoundedBoxGeometry(width,len,width,3,.075),mat(color,.62));mesh.position.set(0,-len*.5,0);mesh.castShadow=true;mesh.receiveShadow=true;pivot.add(mesh);const joint=new THREE.Mesh(new RoundedBoxGeometry(width*.96,width*.96,width*.96,3,.07),mat(color,.62));joint.position.set(0,-len,0);joint.castShadow=true;pivot.add(joint);return pivot}
+function makeLimb(parent,name,color,top,bottom,r=.15){const pivot=new THREE.Group();pivot.position.set(...top);parent.add(pivot);const len=Math.hypot(top[0]-bottom[0],top[1]-bottom[1],top[2]-bottom[2]);const width=r*2.15;const mesh=new THREE.Mesh(new THREE.BoxGeometry(width,len,width),mat(color,.62));mesh.position.set(0,-len*.5,0);mesh.castShadow=true;mesh.receiveShadow=true;pivot.add(mesh);const joint=new THREE.Mesh(new THREE.BoxGeometry(width*.96,width*.96,width*.96),mat(color,.62));joint.position.set(0,-len,0);joint.castShadow=true;pivot.add(joint);return pivot}
 function buildAvatar(){
  avatarRoot=new THREE.Group();avatarRoot.scale.setScalar(.72);scene.add(avatarRoot);
  // Classic blocky Roblox-style body: square head, red torso, gray arms, blue legs.
