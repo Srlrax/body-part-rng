@@ -28,15 +28,15 @@ const mat=(color,roughness=.72,metalness=0)=>new THREE.MeshStandardMaterial({col
 function box(parent,name,size,color,pos,opts={}){const m=new THREE.Mesh(new THREE.BoxGeometry(...size),mat(color,opts.roughness??.72,opts.metalness??0));m.name=name;m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
 function sphere(parent,name,r,color,pos,scale=[1,1,1],metalness=0){const m=new THREE.Mesh(new THREE.SphereGeometry(r,24,16),mat(color,.48,metalness));m.name=name;m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;parent.add(m);return m}
 function cylinder(parent,name,rt,rb,h,color,pos,segments=16){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,segments),mat(color));m.name=name;m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-function makeLimb(parent,name,color,top,bottom,r=.15){const pivot=new THREE.Group();pivot.position.set(...top);parent.add(pivot);const len=Math.hypot(top[0]-bottom[0],top[1]-bottom[1],top[2]-bottom[2]);const mesh=new THREE.Mesh(new THREE.CapsuleGeometry(r,len*.36,5,12),mat(color,.5));mesh.position.set(0,-len*.5,0);mesh.castShadow=true;pivot.add(mesh);sphere(pivot,name+"Joint",r*1.02,color,[0,-len,0]);return pivot}
+function makeLimb(parent,name,color,top,bottom,r=.15){const pivot=new THREE.Group();pivot.position.set(...top);parent.add(pivot);const len=Math.hypot(top[0]-bottom[0],top[1]-bottom[1],top[2]-bottom[2]);const width=r*2.15;const mesh=new THREE.Mesh(new THREE.BoxGeometry(width,len,width),mat(color,.62));mesh.position.set(0,-len*.5,0);mesh.castShadow=true;mesh.receiveShadow=true;pivot.add(mesh);const joint=new THREE.Mesh(new THREE.BoxGeometry(width*.96,width*.96,width*.96),mat(color,.62));joint.position.set(0,-len,0);joint.castShadow=true;pivot.add(joint);return pivot}
 function buildAvatar(){
  avatarRoot=new THREE.Group();scene.add(avatarRoot);
  const torso=box(avatarRoot,"torso",[.9,1.15,.48],part(equipped.Torso).color,[0,1.55,0],{roughness:.42});torso.geometry.dispose();torso.geometry=new THREE.BoxGeometry(.9,1.15,.48);
  bodyParts.torso=torso;
- bodyParts.neck=cylinder(avatarRoot,"neck",.16,.16,.22,"#d5a47f",[0,2.22,0]);
- bodyParts.head=sphere(avatarRoot,"head",.38,part(equipped.Head).color,[0,2.68,0],[.9,1.05,.9]);
- bodyParts.eyeL=sphere(avatarRoot,"eyeL",.055,"#ffffff",[-.14,2.72,.33]);bodyParts.eyeR=sphere(avatarRoot,"eyeR",.055,"#ffffff",[.14,2.72,.33]);
- bodyParts.pupilL=sphere(avatarRoot,"pupilL",.027,"#17243a",[-.14,2.72,.38]);bodyParts.pupilR=sphere(avatarRoot,"pupilR",.027,"#17243a",[.14,2.72,.38]);
+ bodyParts.neck=box(avatarRoot,"neck",[.28,.22,.28],"#d5a47f",[0,2.22,0]);
+ bodyParts.head=box(avatarRoot,"head",[.82,.82,.78],part(equipped.Head).color,[0,2.68,0],{roughness:.62});
+ bodyParts.eyeL=sphere(avatarRoot,"eyeL",.055,"#ffffff",[-.15,2.73,.402]);bodyParts.eyeR=sphere(avatarRoot,"eyeR",.055,"#ffffff",[.15,2.73,.402]);
+ bodyParts.pupilL=sphere(avatarRoot,"pupilL",.027,"#17243a",[-.15,2.73,.45]);bodyParts.pupilR=sphere(avatarRoot,"pupilR",.027,"#17243a",[.15,2.73,.45]);
  bodyParts.armL=makeLimb(avatarRoot,"armL",part(equipped.Arms).color,[-.57,1.98,0],[-.66,.94,0],.17);
  bodyParts.armR=makeLimb(avatarRoot,"armR",part(equipped.Arms).color,[.57,1.98,0],[.66,.94,0],.17);
  bodyParts.legL=makeLimb(avatarRoot,"legL",part(equipped.Legs).color,[-.23,1.05,0],[-.25,.12,.02],.2);
@@ -45,7 +45,7 @@ function buildAvatar(){
  bodyParts.crown=new THREE.Group();avatarRoot.add(bodyParts.crown);
  for(let i=0;i<5;i++){const a=-Math.PI/2+i*Math.PI/4;const spike=cylinder(bodyParts.crown,"crownSpike",.035,.11,.27,"#f4c64e",[Math.cos(a)*.23,.2,Math.sin(a)*.23],8);spike.rotation.z=-Math.cos(a)*.4}
  bodyParts.crown.position.set(0,3.02,0);bodyParts.crown.visible=equipped.Head==="crown-head";
- bodyParts.headRing=new THREE.Mesh(new THREE.TorusGeometry(.37,.07,8,24),mat("#a9c4d8",.25,.8));bodyParts.headRing.rotation.x=Math.PI/2;bodyParts.headRing.position.set(0,2.68,0);avatarRoot.add(bodyParts.headRing);bodyParts.headRing.visible=equipped.Head==="robot-head";
+ bodyParts.headRing=new THREE.Mesh(new THREE.TorusGeometry(.43,.055,8,24),mat("#a9c4d8",.25,.8));bodyParts.headRing.rotation.x=Math.PI/2;bodyParts.headRing.position.set(0,2.68,0);avatarRoot.add(bodyParts.headRing);bodyParts.headRing.visible=equipped.Head==="robot-head";
  bodyParts.core=sphere(avatarRoot,"core",.2,"#31d8d0",[0,1.58,.255]);bodyParts.core.visible=equipped.Torso==="neon-torso";bodyParts.core.material.emissive=new THREE.Color("#087e85");bodyParts.core.material.emissiveIntensity=1.2;
  bodyParts.shoulderL=sphere(avatarRoot,"shoulderL",.22,part(equipped.Arms).color,[-.55,1.99,0]);bodyParts.shoulderR=sphere(avatarRoot,"shoulderR",.22,part(equipped.Arms).color,[.55,1.99,0]);
  bodyParts.kneeL=sphere(avatarRoot,"kneeL",.19,part(equipped.Legs).color,[-.25,.55,0]);bodyParts.kneeR=sphere(avatarRoot,"kneeR",.19,part(equipped.Legs).color,[.25,.55,0]);
