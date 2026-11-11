@@ -17,10 +17,12 @@ const parts = [
 ];
 const starter = {money:100,inventory:["starter-head","starter-torso","starter-arms","starter-legs"],equipped:{Head:"starter-head",Torso:"starter-torso",Arms:"starter-arms",Legs:"starter-legs"}};
 function loadSave(){try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));return s&&Array.isArray(s.inventory)&&s.equipped?s:structuredClone(starter)}catch{return structuredClone(starter)}}
-let save=loadSave(),money=Number.isFinite(Number(save.money))?Number(save.money):100,inventory=save.inventory,equipped=save.equipped;\nlet questProgress=Math.max(0,Number(save.questProgress)||0),questReward=250;
+let save=loadSave(),money=Number.isFinite(Number(save.money))?Number(save.money):100,inventory=save.inventory,equipped=save.equipped;
+let questProgress=Math.max(0,Number(save.questProgress)||0),questReward=250;
 let upgrades={speed:0,luck:0,coins:0,...(save.upgrades||{})};
 let health=100,damage=10,income=0,nearShop=false,toastTimer;
-function persist(){localStorage.setItem(SAVE_KEY,JSON.stringify({money,inventory,equipped,upgrades,questProgress}))}\nfunction updateQuest(){const fill=$("questFill"),count=$("questCount");if(fill)fill.style.width=Math.min(100,questProgress/5*100)+"%";if(count)count.textContent=Math.min(questProgress,5)+" / 5";}
+function persist(){localStorage.setItem(SAVE_KEY,JSON.stringify({money,inventory,equipped,upgrades,questProgress}))}
+function updateQuest(){const fill=$("questFill"),count=$("questCount");if(fill)fill.style.width=Math.min(100,questProgress/5*100)+"%";if(count)count.textContent=Math.min(questProgress,5)+" / 5";}
 function part(id){return parts.find(p=>p.id===id)||parts[0]}
 function stats(){const active=Object.values(equipped).filter(Boolean).map(part);income=Math.floor(active.reduce((n,p)=>n+p.income,0)*(1+upgrades.coins*.25));health=100+active.reduce((n,p)=>n+p.health,0);damage=10+active.reduce((n,p)=>n+p.power,0)}
 function updateStats(){stats();$("money").textContent=Math.floor(money).toLocaleString();$("health").textContent=health;$("healthFill").style.width="100%";$("damage").textContent=damage;$("income").textContent=income}
@@ -37,9 +39,14 @@ function roll(){
  const weightOf=p=>p.weight*(p.rarity==="Common"?1:p.rarity==="Rare"?1+upgrades.luck*.25:1+upgrades.luck*.25);
  const total=parts.reduce((n,p)=>n+weightOf(p),0);let r=Math.random()*total,pick=parts[0];
  for(const p of parts){r-=weightOf(p);if(r<=0){pick=p;break}}
- inventory.push(pick.id);if(!equipped[pick.slot])equipped[pick.slot]=pick.id;\n questProgress++;if(questProgress>=5){money+=questReward;questProgress=0;notify("QUEST COMPLETE! +"+questReward+" coins");persist()}
+ inventory.push(pick.id);if(!equipped[pick.slot])equipped[pick.slot]=pick.id;
+ questProgress++;if(questProgress>=5){money+=questReward;questProgress=0;notify("QUEST COMPLETE! +"+questReward+" coins");persist()}
  $("result").textContent=pick.icon+" "+pick.name+" — "+pick.rarity;
- updateStats();renderInventory();updateQuest();persist();\n const result=$("result");result.className="roll-result rarity-"+pick.rarity.toLowerCase();result.textContent=pick.icon+" "+pick.name+" — "+pick.rarity;\n const button=$("rollButton");button.classList.remove("rolling");void button.offsetWidth;button.classList.add("rolling");\n if(pick.rarity!=="Common"){const flash=$("rarityFlash");if(flash){flash.className="rarity-flash "+pick.rarity.toLowerCase();setTimeout(()=>flash.className="rarity-flash",550)}}\n if(questProgress===0)notify("QUEST COMPLETE! +"+questReward+" coins");else notify("You rolled "+pick.name+"!");
+ updateStats();renderInventory();updateQuest();persist();
+ const result=$("result");result.className="roll-result rarity-"+pick.rarity.toLowerCase();result.textContent=pick.icon+" "+pick.name+" — "+pick.rarity;
+ const button=$("rollButton");button.classList.remove("rolling");void button.offsetWidth;button.classList.add("rolling");
+ if(pick.rarity!=="Common"){const flash=$("rarityFlash");if(flash){flash.className="rarity-flash "+pick.rarity.toLowerCase();setTimeout(()=>flash.className="rarity-flash",550)}}
+ if(questProgress===0)notify("QUEST COMPLETE! +"+questReward+" coins");else notify("You rolled "+pick.name+"!");
 }
 $("rollButton").onclick=roll;
 $("openInventory").onclick=()=>$("inventoryModal").classList.remove("hidden");
