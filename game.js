@@ -94,15 +94,85 @@ function makeShop(){const g=new THREE.Group();g.position.copy(shopPosition);scen
  box(g,"signBoard",[3,.58,.22],"#173149",[0,3.7,2.0]);const canvas=document.createElement("canvas");canvas.width=512;canvas.height=96;const c=canvas.getContext("2d");c.fillStyle="#fff0bd";c.font="bold 43px Arial";c.textAlign="center";c.fillText("UPGRADE SHOP",256,64);const tex=new THREE.CanvasTexture(canvas);const sign=new THREE.Mesh(new THREE.PlaneGeometry(2.85,.52),new THREE.MeshBasicMaterial({map:tex,transparent:true}));sign.position.set(0,3.7,2.13);g.add(sign);
  const pad=box(g,"welcomeMat",[2.4,.08,1.1],"#d7b56b",[0,.34,3.1]);pad.material.color.set("#d7b56b");
 }
+
+function makeTrail(points,width=3){
+ const curve=new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(p[0],.065,p[1])));
+ const segments= Math.max(24,points.length*18),vertices=[],indices=[];
+ for(let i=0;i<=segments;i++){const t=i/segments,p=curve.getPointAt(t),tan=curve.getTangentAt(t),side=new THREE.Vector3(-tan.z,0,tan.x).normalize().multiplyScalar(width/2);vertices.push(p.x-side.x,p.y,p.z-side.z,p.x+side.x,p.y,p.z+side.z);if(i<segments){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2)}}
+ const geo=new THREE.BufferGeometry();geo.setAttribute("position",new THREE.Float32BufferAttribute(vertices,3));geo.setIndex(indices);geo.computeVertexNormals();
+ const mesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:"#b5a58b",roughness:1,side:THREE.DoubleSide}));mesh.receiveShadow=true;scene.add(mesh);
+ for(let i=0;i<segments;i+=5){const p=curve.getPointAt(i/segments);const pebble=new THREE.Mesh(new THREE.DodecahedronGeometry(.09+Math.random()*.07,0),mat("#d4c6ac",1));pebble.position.set(p.x+(Math.random()-.5)*width*.8,.1,p.z+(Math.random()-.5)*width*.8);pebble.scale.y=.25;pebble.rotation.y=Math.random()*Math.PI;scene.add(pebble)}
+}
+function makePine(x,z,scale=1){
+ const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);scene.add(g);
+ cylinder(g,"pineTrunk",.16,.23,1.8,"#65452f",[0,.9,0],8);
+ for(let i=0;i<4;i++){const h=1.35+i*.48,r=1.12-i*.19;const crown=new THREE.Mesh(new THREE.ConeGeometry(r,1.75,8),mat(i%2?"#285b3e":"#326b47",.94));crown.position.set(0,h,0);crown.castShadow=true;crown.receiveShadow=true;g.add(crown)}
+}
+function makeHill(x,z,sx,sy,sz,color="#829b78"){
+ const hill=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),mat(color,1));hill.position.set(x,-sy*.48,z);hill.scale.set(sx,sy,sz);hill.castShadow=true;hill.receiveShadow=true;scene.add(hill);
+}
+function makeLake(x,z,rx,rz){
+ const bank=new THREE.Mesh(new THREE.CircleGeometry(1,64),mat("#b9aa83",1));bank.rotation.x=-Math.PI/2;bank.position.set(x,.035,z);bank.scale.set(rx+1.1,rz+1.1,1);bank.receiveShadow=true;scene.add(bank);
+ const water=new THREE.Mesh(new THREE.CircleGeometry(1,64),new THREE.MeshStandardMaterial({color:"#4e9fa5",roughness:.22,metalness:.12,transparent:true,opacity:.9}));water.rotation.x=-Math.PI/2;water.position.set(x,.09,z);water.scale.set(rx,rz,1);scene.add(water);
+ const rim=new THREE.Mesh(new THREE.TorusGeometry(1,.035,6,64),mat("#d1c49f",1));rim.rotation.x=-Math.PI/2;rim.position.set(x,.105,z);rim.scale.set(rx,rz,1);scene.add(rim);
+ for(let i=0;i<18;i++){const a=i*Math.PI*2/18;const reed=cylinder(scene,"shoreReed",.018,.025,.65,"#78904e",[x+Math.cos(a)*(rx+.35),.32,z+Math.sin(a)*(rz+.35)],5);reed.rotation.z=Math.cos(a)*-.16;}
+}
+function makeBridge(x,z){
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+ box(g,"bridgeDeck",[5,.28,3.2],"#806044",[0,.48,0]);
+ for(let i=0;i<9;i++)box(g,"bridgePlank",[.48,.06,3.18],i%2?"#a47a52":"#936d49",[-2+i*.5,.65,0]);
+ for(const side of [-1,1]){box(g,"bridgeRail",[5,.16,.16],"#62462f",[0,1.15,side*1.48]);for(let i=0;i<6;i++)box(g,"bridgePost",[.16,.8,.16],"#684a32",[-2+i*.8,.92,side*1.48]);}
+}
+function makeBench(x,z,rotation=0){
+ const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rotation;scene.add(g);
+ for(let i=0;i<3;i++)box(g,"benchSeat",[2.1,.12,.18],"#8d6543",[0,.65,-.2+i*.2]);
+ for(const side of [-1,1]){box(g,"benchLeg",[.13,.62,.15],"#4b4a40",[side*.78,.32,0]);box(g,"benchBack",[.13,.8,.15],"#765239",[side*.78,1,-.48]);}
+ box(g,"benchBackrest",[2.1,.14,.16],"#8d6543",[0,1.02,-.48]);
+}
+function makeCrate(x,z,size=1){
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+ box(g,"crateBody",[size,.75*size,.75*size],"#8c633f",[0,.38*size,0]);
+ for(const y of [.08,.68])box(g,"crateBand",[size+.025,.08,.78*size],"#c0945f",[0,y*size,0]);
+ box(g,"crateCrossA",[.09,.7*size,.78*size],"#c0945f",[0,.38*size,0]).rotation.z=.7;
+ box(g,"crateCrossB",[.09,.7*size,.78*size],"#c0945f",[0,.38*size,0]).rotation.z=-.7;
+}
+function makeSignpost(x,z,rotation=0){
+ const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rotation;scene.add(g);
+ cylinder(g,"signPole",.07,.09,2.1,"#65452f",[0,1.05,0],8);
+ box(g,"signBoard",[1.45,.48,.13],"#8a603d",[.48,1.72,0]);
+ box(g,"signBoardEdge",[1.5,.06,.15],"#c59b66",[.48,1.98,0]);
+}
+function makeLookout(x,z){
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+ cylinder(g,"lookoutBase",.2,.2,.5,"#75644d",[0,.25,0],8);
+ const deck=new THREE.Mesh(new THREE.CylinderGeometry(3.4,3.7,.38,12),mat("#806044"));deck.position.y=.62;deck.castShadow=true;deck.receiveShadow=true;g.add(deck);
+ for(let i=0;i<12;i++){const a=i*Math.PI/6;const post=box(g,"lookoutPost",[.14,1.4,.14],"#674a34",[Math.cos(a)*3.15,1.25,Math.sin(a)*3.15]);}
+ const rail=new THREE.Mesh(new THREE.TorusGeometry(3.15,.09,6,12),mat("#986d48"));rail.rotation.x=Math.PI/2;rail.position.y=1.85;g.add(rail);
+}
+function makeCamp(x,z){
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+ const tent=new THREE.Mesh(new THREE.ConeGeometry(2.1,2.5,4),mat("#b8a17a",1));tent.position.set(0,1.25,0);tent.rotation.y=Math.PI/4;tent.scale.set(1,1,.82);tent.castShadow=true;g.add(tent);
+ box(g,"tentDoor",[.95,1.3,.08],"#66533c",[0,.67,1.03]);
+ const fireRing=new THREE.Mesh(new THREE.TorusGeometry(.75,.13,7,18),mat("#716b60"));fireRing.rotation.x=Math.PI/2;fireRing.position.set(3,.12,1);g.add(fireRing);
+ for(let i=0;i<5;i++){const log=cylinder(g,"firewood",.09,.09,1.1,"#69452f",[3,.17,1],7);log.rotation.z=Math.PI/2;log.rotation.y=i*Math.PI/5;}
+ for(const side of [-1,1]){const log=box(g,"campLog",[1.5,.25,.32],"#79563a",[side*1.5,.28,1.9]);log.rotation.y=side*.25;}
+}
+function makeTrainingYard(x,z){
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+ for(const side of [-1,1]){box(g,"yardPost",[.22,2.4,.22],"#745237",[side*4,1.2,0]);}
+ box(g,"yardBeam",[8.2,.2,.22],"#8b6542",[0,2.35,0]);
+ for(const x0 of [-2.5,0,2.5]){const target=new THREE.Mesh(new THREE.TorusGeometry(.62,.12,8,24),mat("#c8d1cf",.65));target.position.set(x0,1.5,.2);g.add(target);const center=sphere(g,"targetCenter",.2,"#bd5b4c",[x0,1.5,.23]);}
+}
+
 function init3D(){const host=$("gameCanvas");scene=new THREE.Scene();scene.background=new THREE.Color("#a9d3ec");scene.fog=new THREE.Fog("#c3d9d0",38,105);
  camera=new THREE.PerspectiveCamera(65,1,.1,180);renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.75));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;host.replaceChildren(renderer.domElement);
  scene.add(new THREE.HemisphereLight("#e8f5ff","#52664a",1.65));const sun=new THREE.DirectionalLight("#fff0cf",2.65);sun.position.set(-18,28,14);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-42;sun.shadow.camera.right=42;sun.shadow.camera.top=42;sun.shadow.camera.bottom=-42;sun.shadow.bias=-.00018;scene.add(sun);const fillLight=new THREE.DirectionalLight("#a9d5ff",.55);fillLight.position.set(15,10,-18);scene.add(fillLight);
  const terrainGeo=new THREE.PlaneGeometry(150,150,90,90);const pos=terrainGeo.attributes.position;for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getY(i);pos.setZ(i,Math.sin(x*.11)*.12+Math.cos(z*.13)*.1+Math.sin((x+z)*.07)*.07);}terrainGeo.computeVertexNormals();const grassCanvas=document.createElement("canvas");grassCanvas.width=grassCanvas.height=512;const gc=grassCanvas.getContext("2d");gc.fillStyle="#719d61";gc.fillRect(0,0,512,512);for(let i=0;i<11000;i++){const x=Math.random()*512,y=Math.random()*512;gc.fillStyle=["#638e56","#82a96b","#587f50","#91ad70"][Math.floor(Math.random()*4)];gc.globalAlpha=.18+Math.random()*.3;gc.fillRect(x,y,1+Math.random()*3,1+Math.random()*2);}gc.globalAlpha=1;const grassTex=new THREE.CanvasTexture(grassCanvas);grassTex.wrapS=grassTex.wrapT=THREE.RepeatWrapping;grassTex.repeat.set(18,18);grassTex.colorSpace=THREE.SRGBColorSpace;const ground=new THREE.Mesh(terrainGeo,new THREE.MeshStandardMaterial({map:grassTex,color:"#ffffff",roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
- const pathMat=mat("#b4a58a",.98);const mainPath=new THREE.Mesh(new THREE.PlaneGeometry(7,62),pathMat);mainPath.rotation.x=-Math.PI/2;mainPath.position.set(0,.045,-5);mainPath.receiveShadow=true;scene.add(mainPath);const crossPath=new THREE.Mesh(new THREE.PlaneGeometry(42,5),pathMat);crossPath.rotation.x=-Math.PI/2;crossPath.position.set(0,.05,-12);scene.add(crossPath);for(let i=0;i<50;i++){const x=(Math.random()-.5)*6.4,z=-34+i*1.15;const stone=new THREE.Mesh(new THREE.BoxGeometry(.16+Math.random()*.24,.035,.16+Math.random()*.22),mat("#d0c2a6",1));stone.position.set(x,.08,z);stone.rotation.y=Math.random()*Math.PI;scene.add(stone);}
- for(let i=0;i<42;i++){const a=i*Math.PI*2/42,r=17+(i%4)*2.3;makeTree(Math.cos(a)*r,Math.sin(a)*r,.8+Math.random()*.65)}
- for(let i=0;i<95;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*32;const x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<5&&z>-34&&z<3)continue;makeGrassTuft(x,z)}
+ makeTrail([[0,7],[0,1],[0,-5],[0,-12]],5.8);makeTrail([[0,-12],[5,-15],[13,-18],[21,-22]],3.2);makeTrail([[0,-12],[-6,-15],[-14,-18],[-23,-22]],3.2);makeTrail([[0,-12],[6,-8],[14,-3],[22,7],[23,14]],3.1);makeTrail([[0,5],[-7,8],[-15,13],[-22,16]],3.1);makeLake(23,-24,7.2,4.7);makeBridge(31,-24);makeLookout(-24,-22);makeCamp(-23,17);makeTrainingYard(23,16);makeSignpost(5,-14,-.6);makeBench(-5,-8,.2);makeBench(8,-8,-.2);for(const [x,z] of [[-4,-14],[4,-14],[-27,-20],[19,-19],[26,11]])makeCrate(x,z,.8);
+ for(let i=0;i<42;i++){const a=i*Math.PI*2/42,r=23+(i%4)*3.2;makeTree(Math.cos(a)*r,Math.sin(a)*r,.8+Math.random()*.65)}for(let i=0;i<28;i++){const a=i*Math.PI*2/28,r=30+(i%3)*3;makePine(Math.cos(a)*r,Math.sin(a)*r,.8+Math.random()*.6)}for(const [x,z,sc] of [[-35,-8,1.2],[35,4,1.3],[-32,28,1.4],[34,-32,1.2],[-10,-38,1.1],[12,38,1.3]])makeHill(x,z,9,4.5,7, "#879b78");
+ for(let i=0;i<230;i++){const a=Math.random()*Math.PI*2,r=8+Math.random()*32;const x=Math.cos(a)*r,z=Math.sin(a)*r;if(Math.abs(x)<5&&z>-34&&z<3)continue;makeGrassTuft(x,z)}
  for(const [x,z] of [[-9,-5],[9,-5],[-10,7],[10,7],[-4,-20],[5,-22]])makeLamp(x,z);
- for(let i=0;i<22;i++){const a=i*Math.PI/11;const x=Math.cos(a)*(8+Math.random()*5),z=Math.sin(a)*(8+Math.random()*5);makeRock(x,z,.65+Math.random()*.8)}
+ for(let i=0;i<38;i++){const a=i*Math.PI/19;const x=Math.cos(a)*(8+Math.random()*5),z=Math.sin(a)*(8+Math.random()*5);makeRock(x,z,.65+Math.random()*.8)}
  for(const side of [-1,1])for(let i=0;i<9;i++){const z=-26+i*3.2;const x=side*13;box(scene,"fencePost",[.18,1.05,.18],"#76533a",[x,.52,z]);if(i<8)box(scene,"fenceRail",[.12,.13,3.15],"#98704a",[x,.72,z+1.55]);}
  makeShop();player=new THREE.Vector3(0,0,5);buildAvatar();clock=new THREE.Clock();
  const resize=()=>{const r=host.getBoundingClientRect();camera.aspect=Math.max(.1,r.width)/Math.max(.1,r.height);camera.updateProjectionMatrix();renderer.setSize(r.width,r.height,false)};new ResizeObserver(resize).observe(host);resize();
