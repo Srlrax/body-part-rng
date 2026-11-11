@@ -11,61 +11,51 @@
   </script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand"><span class="brand-mark">B</span><div><strong>BODY PART RNG</strong><small>BUILD YOUR BEST AVATAR</small></div></div>
-    <div class="top-stats">
-      <div class="stat"><span>COINS</span><b id="money">0</b></div>
-      <div class="stat"><span>HEALTH</span><b id="health">100</b></div>
-      <div class="stat"><span>POWER</span><b id="damage">10</b></div>
-      <div class="stat"><span>COINS / SEC</span><b id="income">1</b></div>
-    </div>
-  </header>
+  <main class="game-screen">
+    <div id="gameCanvas" aria-label="3D game world"></div>
 
-  <main class="game-layout">
-    <section class="world-panel">
-      <div id="gameCanvas" aria-label="3D game world"></div>
-      <div class="world-title"><span class="live-dot"></span> MAIN PLAZA <small>YOUR WORLD</small></div>
-      <div class="world-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> MOVE <span>·</span> <kbd>SPACE</kbd> JUMP <span>·</span> <kbd>SHIFT</kbd> RUN</div>
-      <div id="toast" class="toast">Welcome! Roll a part to get started.</div>
+    <div class="hud-top">
+      <div class="money-panel"><span class="coin-symbol">¢</span><div><small>YOUR CASH</small><strong id="money">100</strong></div></div>
+      <div class="health-panel">
+        <div class="health-label"><span>♥ HEALTH</span><strong><b id="health">100</b> HP</strong></div>
+        <div class="health-track"><div id="healthFill" class="health-fill"></div></div>
+      </div>
+      <div class="hud-actions">
+        <button id="openShop" class="hud-button shop-hud"><span>🛒</span><b>SHOP</b></button>
+        <button id="openInventory" class="hud-button"><span>🎒</span><b>BAG</b></button>
+      </div>
+    </div>
+
+    <div class="game-brand"><span class="brand-dot"></span> BODY PART RNG <small>PLAZA</small></div>
+    <div class="world-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> MOVE <span>·</span> <kbd>SPACE</kbd> JUMP <span>·</span> <kbd>SHIFT</kbd> RUN</div>
+
+    <div class="bottom-controls">
+      <div class="quick-stats"><span>⚔ <b id="damage">10</b> POWER</span><span>⌁ <b id="income">5</b> / SEC</span></div>
+      <button id="rollButton" class="roll-button"><span class="roll-spark">✦</span><span>ROLL</span><small>RANDOM BODY PART</small></button>
+      <div id="result" class="roll-result">Ready to roll?</div>
+    </div>
+    <div id="toast" class="toast">Welcome to the plaza!</div>
+
+    <section id="shopModal" class="modal hidden" aria-label="Shop">
+      <div class="modal-card">
+        <div class="modal-head"><div><small>UPGRADE YOUR BUILD</small><h2>🛒 Body Shop</h2></div><button class="close-modal" data-close="shopModal">✕</button></div>
+        <p class="modal-subtitle">Spend coins on stronger parts. Better armor increases your maximum health.</p>
+        <div id="shopItems" class="shop-list"></div>
+      </div>
     </section>
 
-    <aside class="side-panel">
-      <section class="card roll-card">
-        <div class="section-heading"><div><small>LUCKY MACHINE</small><h2>Part Roll</h2></div><span class="pill">RNG</span></div>
-        <p>Roll a random body part. Equip it to change how your avatar looks and boost your stats.</p>
-        <button id="rollButton" class="primary-button">ROLL PART <span>✦</span></button>
-        <div id="result" class="result">Your next part is waiting...</div>
-      </section>
-
-      <section class="card">
-        <div class="section-heading"><div><small>YOUR LOADOUT</small><h2>Equipped Parts</h2></div><span id="equippedCount" class="pill">0 / 6</span></div>
+    <section id="inventoryModal" class="modal hidden" aria-label="Inventory">
+      <div class="modal-card">
+        <div class="modal-head"><div><small>YOUR COLLECTION</small><h2>🎒 Inventory & Loadout</h2></div><button class="close-modal" data-close="inventoryModal">✕</button></div>
+        <div class="loadout-title">EQUIPPED</div>
         <div id="equipped" class="equipment-grid"></div>
-      </section>
-
-      <section class="card">
-        <div class="section-heading"><div><small>COLLECTION</small><h2>Inventory</h2></div><span id="inventoryCount" class="pill">0 PARTS</span></div>
-        <div id="inventory" class="inventory-list"><div class="empty-state">No parts yet. Try your first roll!</div></div>
-      </section>
-
-      <section class="card shop-card">
-        <div class="section-heading"><div><small>SPEND YOUR COINS</small><h2>Shop</h2></div><span class="pill gold">SHOP</span></div>
-        <div id="shopItems" class="shop-list"></div>
-      </section>
-    </aside>
+        <div class="loadout-title">YOUR PARTS <span id="inventoryCount">0 PARTS</span></div>
+        <div id="inventory" class="inventory-list"><div class="empty-state">Roll to find your first part!</div></div>
+      </div>
+    </section>
   </main>
 
-  <section class="bottom-bar">
-    <div class="multiplayer-box">
-      <div><small>PLAY WITH FRIENDS</small><strong>Multiplayer Room</strong></div>
-      <input id="roomCode" maxlength="6" inputmode="numeric" placeholder="6-digit code">
-      <button id="createRoom" class="secondary-button">Create room</button>
-      <button id="joinRoom" class="secondary-button">Join</button>
-      <span id="playerCount" class="online-count">Solo</span>
-    </div>
-    <div id="lobbyStatus" class="lobby-status">Not in a room yet</div>
-    <div class="save-note">Progress saves automatically on this device.</div>
-  </section>
-
+  <div class="hidden-data" aria-hidden="true"><span id="playerCount">Solo</span><span id="lobbyStatus">Not in a room yet</span><input id="roomCode"><button id="createRoom">Create</button><button id="joinRoom">Join</button></div>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="multiplayer.js"></script>
   <script type="module" src="game.js"></script>
