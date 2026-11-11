@@ -2,16 +2,16 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 const $=id=>document.getElementById(id);
 const SAVE_KEY="bodyPartRngSaveV2";
 const parts=[
-{id:"starter-head",name:"Starter Head",slot:"Head",rarity:"Common",weight:38,price:0,income:0,health:0,power:0,color:"#f1c7a0",icon:"🙂"},
+{id:"starter-head",name:"Starter Head",slot:"Head",rarity:"Common",weight:38,price:0,income:0,health:0,power:0,color:"#bfc3c7",icon:"🙂"},
 {id:"robot-head",name:"Robot Head",slot:"Head",rarity:"Rare",weight:14,price:85,income:4,health:10,power:2,color:"#8da9c7",icon:"🤖"},
 {id:"crown-head",name:"Royal Crown",slot:"Head",rarity:"Epic",weight:5,price:240,income:12,health:20,power:5,color:"#f4c64e",icon:"👑"},
-{id:"starter-torso",name:"Starter Torso",slot:"Torso",rarity:"Common",weight:38,price:0,income:0,health:0,power:0,color:"#3978d4",icon:"🟦"},
+{id:"starter-torso",name:"Starter Torso",slot:"Torso",rarity:"Common",weight:38,price:0,income:0,health:0,power:0,color:"#e52b2b",icon:"🟥"},
 {id:"rock-torso",name:"Stone Torso",slot:"Torso",rarity:"Rare",weight:14,price:110,income:5,health:35,power:1,color:"#8794a7",icon:"🪨"},
 {id:"neon-torso",name:"Neon Core",slot:"Torso",rarity:"Epic",weight:5,price:280,income:15,health:45,power:6,color:"#31d8d0",icon:"💠"},
-{id:"starter-arms",name:"Starter Arms",slot:"Arms",rarity:"Common",weight:38,price:0,income:0,health:0,power:0,color:"#f1c7a0",icon:"💪"},
+{id:"starter-arms",name:"Starter Arms",slot:"Arms",rarity:"Common",weight:38,price:0,income:0,health:0,power:0,color:"#bfc3c7",icon:"💪"},
 {id:"steel-arms",name:"Steel Arms",slot:"Arms",rarity:"Rare",weight:14,price:130,income:5,health:20,power:8,color:"#9daec2",icon:"🦾"},
 {id:"crystal-arms",name:"Crystal Arms",slot:"Arms",rarity:"Epic",weight:5,price:320,income:18,health:25,power:14,color:"#9c7bff",icon:"🔮"},
-{id:"starter-legs",name:"Starter Legs",slot:"Legs",rarity:"Common",weight:38,price:0,income:0,health:0,power:0,color:"#253d68",icon:"👖"},
+{id:"starter-legs",name:"Starter Legs",slot:"Legs",rarity:"Common",weight:38,price:0,income:0,health:0,power:0,color:"#173fd1",icon:"👖"},
 {id:"runner-legs",name:"Runner Legs",slot:"Legs",rarity:"Rare",weight:14,price:150,income:7,health:10,power:4,color:"#45b78b",icon:"🏃"},
 {id:"rocket-legs",name:"Rocket Legs",slot:"Legs",rarity:"Epic",weight:5,price:360,income:22,health:15,power:10,color:"#ff875e",icon:"🚀"}];
 const starter={money:100,inventory:["starter-head","starter-torso","starter-arms","starter-legs"],equipped:{Head:"starter-head",Torso:"starter-torso",Arms:"starter-arms",Legs:"starter-legs"}};
@@ -31,56 +31,82 @@ function cylinder(parent,name,rt,rb,h,color,pos,segments=16){const m=new THREE.M
 function makeLimb(parent,name,color,top,bottom,r=.15){const pivot=new THREE.Group();pivot.position.set(...top);parent.add(pivot);const len=Math.hypot(top[0]-bottom[0],top[1]-bottom[1],top[2]-bottom[2]);const width=r*2.15;const mesh=new THREE.Mesh(new THREE.BoxGeometry(width,len,width),mat(color,.62));mesh.position.set(0,-len*.5,0);mesh.castShadow=true;mesh.receiveShadow=true;pivot.add(mesh);const joint=new THREE.Mesh(new THREE.BoxGeometry(width*.96,width*.96,width*.96),mat(color,.62));joint.position.set(0,-len,0);joint.castShadow=true;pivot.add(joint);return pivot}
 function buildAvatar(){
  avatarRoot=new THREE.Group();avatarRoot.scale.setScalar(.72);scene.add(avatarRoot);
- const torso=box(avatarRoot,"torso",[.9,1.15,.48],part(equipped.Torso).color,[0,1.55,0],{roughness:.42});torso.geometry.dispose();torso.geometry=new THREE.BoxGeometry(.9,1.15,.48);
- bodyParts.torso=torso;
- bodyParts.neck=box(avatarRoot,"neck",[.28,.22,.28],"#d5a47f",[0,2.22,0]);
- bodyParts.head=box(avatarRoot,"head",[.82,.82,.78],part(equipped.Head).color,[0,2.68,0],{roughness:.62});
- bodyParts.eyeL=sphere(avatarRoot,"eyeL",.055,"#ffffff",[-.15,2.73,.402]);bodyParts.eyeR=sphere(avatarRoot,"eyeR",.055,"#ffffff",[.15,2.73,.402]);
- bodyParts.pupilL=sphere(avatarRoot,"pupilL",.027,"#17243a",[-.15,2.73,.45]);bodyParts.pupilR=sphere(avatarRoot,"pupilR",.027,"#17243a",[.15,2.73,.45]);
- bodyParts.armL=makeLimb(avatarRoot,"armL",part(equipped.Arms).color,[-.57,1.98,0],[-.66,.94,0],.17);
- bodyParts.armR=makeLimb(avatarRoot,"armR",part(equipped.Arms).color,[.57,1.98,0],[.66,.94,0],.17);
- bodyParts.legL=makeLimb(avatarRoot,"legL",part(equipped.Legs).color,[-.23,1.05,0],[-.25,.12,.02],.2);
- bodyParts.legR=makeLimb(avatarRoot,"legR",part(equipped.Legs).color,[.23,1.05,0],[.25,.12,.02],.2);
- bodyParts.footL=box(avatarRoot,"footL",[.38,.2,.58],"#263c56",[-.25,.11,.16]);bodyParts.footR=box(avatarRoot,"footR",[.38,.2,.58],"#263c56",[.25,.11,.16]);
+ // Classic blocky Roblox-style body: square head, red torso, gray arms, blue legs.
+ bodyParts.torso=box(avatarRoot,"torso",[1.12,1.25,.58],part(equipped.Torso).color,[0,1.72,0],{roughness:.72});
+ bodyParts.neck=box(avatarRoot,"neck",[.3,.18,.3],"#bfc3c7",[0,2.43,0]);
+ bodyParts.head=box(avatarRoot,"head",[.88,.88,.84],part(equipped.Head).color,[0,2.96,0],{roughness:.72});
+ // Simple classic face: two dark eyes and a curved smile.
+ bodyParts.eyeL=sphere(avatarRoot,"eyeL",.045,"#202124",[-.17,3.03,.43]);
+ bodyParts.eyeR=sphere(avatarRoot,"eyeR",.045,"#202124",[.17,3.03,.43]);
+ const smileCurve=new THREE.CatmullRomCurve3([
+  new THREE.Vector3(-.19,2.83,.432),new THREE.Vector3(-.11,2.77,.45),
+  new THREE.Vector3(0,2.75,.455),new THREE.Vector3(.11,2.77,.45),
+  new THREE.Vector3(.19,2.83,.432)
+ ]);
+ bodyParts.mouth=new THREE.Mesh(new THREE.TubeGeometry(smileCurve,18,.018,6,false),mat("#202124",.8));
+ avatarRoot.add(bodyParts.mouth);
+ bodyParts.armL=makeLimb(avatarRoot,"armL",part(equipped.Arms).color,[-.68,2.18,0],[-.72,.98,0],.205);
+ bodyParts.armR=makeLimb(avatarRoot,"armR",part(equipped.Arms).color,[.68,2.18,0],[.72,.98,0],.205);
+ bodyParts.handL=box(bodyParts.armL,"handL",[.43,.28,.43],part(equipped.Arms).color,[0,-1.31,0]);
+ bodyParts.handR=box(bodyParts.armR,"handR",[.43,.28,.43],part(equipped.Arms).color,[0,-1.31,0]);
+ bodyParts.legL=makeLimb(avatarRoot,"legL",part(equipped.Legs).color,[-.28,1.12,0],[-.29,.12,0],.245);
+ bodyParts.legR=makeLimb(avatarRoot,"legR",part(equipped.Legs).color,[.28,1.12,0],[.29,.12,0],.245);
+ bodyParts.footL=box(avatarRoot,"footL",[.49,.2,.68],"#173fd1",[-.29,.1,.12]);
+ bodyParts.footR=box(avatarRoot,"footR",[.49,.2,.68],"#173fd1",[.29,.1,.12]);
+ bodyParts.soleL=box(avatarRoot,"soleL",[.49,.07,.68],"#102b91",[-.29,.035,.12]);
+ bodyParts.soleR=box(avatarRoot,"soleR",[.49,.07,.68],"#102b91",[.29,.035,.12]);
  bodyParts.crown=new THREE.Group();avatarRoot.add(bodyParts.crown);
  for(let i=0;i<5;i++){const a=-Math.PI/2+i*Math.PI/4;const spike=cylinder(bodyParts.crown,"crownSpike",.035,.11,.27,"#f4c64e",[Math.cos(a)*.23,.2,Math.sin(a)*.23],8);spike.rotation.z=-Math.cos(a)*.4}
- bodyParts.crown.position.set(0,3.02,0);bodyParts.crown.visible=equipped.Head==="crown-head";
- bodyParts.headRing=new THREE.Mesh(new THREE.TorusGeometry(.43,.055,8,24),mat("#a9c4d8",.25,.8));bodyParts.headRing.rotation.x=Math.PI/2;bodyParts.headRing.position.set(0,2.68,0);avatarRoot.add(bodyParts.headRing);bodyParts.headRing.visible=equipped.Head==="robot-head";
- bodyParts.core=sphere(avatarRoot,"core",.2,"#31d8d0",[0,1.58,.255]);bodyParts.core.visible=equipped.Torso==="neon-torso";bodyParts.core.material.emissive=new THREE.Color("#087e85");bodyParts.core.material.emissiveIntensity=1.2;
- bodyParts.shoulderL=sphere(avatarRoot,"shoulderL",.22,part(equipped.Arms).color,[-.55,1.99,0]);bodyParts.shoulderR=sphere(avatarRoot,"shoulderR",.22,part(equipped.Arms).color,[.55,1.99,0]);
- bodyParts.kneeL=sphere(avatarRoot,"kneeL",.19,part(equipped.Legs).color,[-.25,.55,0]);bodyParts.kneeR=sphere(avatarRoot,"kneeR",.19,part(equipped.Legs).color,[.25,.55,0]);
+ bodyParts.crown.position.set(0,3.42,0);
+ bodyParts.headRing=new THREE.Group();avatarRoot.add(bodyParts.headRing);
+ bodyParts.core=new THREE.Group();avatarRoot.add(bodyParts.core);
+ bodyParts.shoulderL=new THREE.Group();avatarRoot.add(bodyParts.shoulderL);
+ bodyParts.shoulderR=new THREE.Group();avatarRoot.add(bodyParts.shoulderR);
+ bodyParts.kneeL=new THREE.Group();avatarRoot.add(bodyParts.kneeL);
+ bodyParts.kneeR=new THREE.Group();avatarRoot.add(bodyParts.kneeR);
  bodyParts.shadow=sphere(avatarRoot,"shadow",.01,"#152b30",[0,.02,0],[2.1,.01,1.4]);
- bodyParts.hair=box(avatarRoot,"hair",[.86,.24,.82],"#3b2b25",[0,3.08,-.015]);
- bodyParts.hairBack=box(avatarRoot,"hairBack",[.82,.48,.18],"#3b2b25",[0,2.91,-.34]);
- bodyParts.browL=box(avatarRoot,"browL",[.19,.045,.035],"#49332b",[-.15,2.84,.405]);
- bodyParts.browR=box(avatarRoot,"browR",[.19,.045,.035],"#49332b",[.15,2.84,.405]);
- bodyParts.mouth=box(avatarRoot,"mouth",[.16,.025,.025],"#75483d",[0,2.57,.405]);
- bodyParts.earL=box(avatarRoot,"earL",[.12,.2,.15],"#d5a47f",[-.45,2.67,0]);
- bodyParts.earR=box(avatarRoot,"earR",[.12,.2,.15],"#d5a47f",[.45,2.67,0]);
- bodyParts.shirtBand=box(avatarRoot,"shirtBand",[.92,.09,.5],"#e6edf5",[0,1.12,0]);
- bodyParts.shirtBadge=box(avatarRoot,"shirtBadge",[.17,.22,.035],"#f5c85d",[.24,1.75,.26]);
- bodyParts.belt=box(avatarRoot,"belt",[.94,.12,.51],"#273447",[0,1.02,0]);
- bodyParts.beltBuckle=box(avatarRoot,"beltBuckle",[.16,.16,.055],"#e6bc5d",[0,1.02,.29]);
- bodyParts.soleL=box(avatarRoot,"soleL",[.4,.09,.61],"#18283a",[-.25,.045,.17]);
- bodyParts.soleR=box(avatarRoot,"soleR",[.4,.09,.61],"#18283a",[.25,.045,.17]);
- // Armor is built as fitted layers on the avatar itself, not floating accessories.
+ bodyParts.hair=new THREE.Group();avatarRoot.add(bodyParts.hair);
+ bodyParts.hairBack=new THREE.Group();avatarRoot.add(bodyParts.hairBack);
+ bodyParts.browL=new THREE.Group();avatarRoot.add(bodyParts.browL);
+ bodyParts.browR=new THREE.Group();avatarRoot.add(bodyParts.browR);
+ bodyParts.earL=new THREE.Group();avatarRoot.add(bodyParts.earL);
+ bodyParts.earR=new THREE.Group();avatarRoot.add(bodyParts.earR);
+ bodyParts.shirtBand=new THREE.Group();avatarRoot.add(bodyParts.shirtBand);
+ bodyParts.shirtBadge=new THREE.Group();avatarRoot.add(bodyParts.shirtBadge);
+ bodyParts.belt=new THREE.Group();avatarRoot.add(bodyParts.belt);
+ bodyParts.beltBuckle=new THREE.Group();avatarRoot.add(bodyParts.beltBuckle);
  bodyParts.stoneArmor=new THREE.Group();avatarRoot.add(bodyParts.stoneArmor);
- box(bodyParts.stoneArmor,"stoneChest",[.72,.72,.075],"#8999a8",[0,1.62,.275],{roughness:.84});
- box(bodyParts.stoneArmor,"stoneChestInset",[.5,.43,.025],"#657787",[0,1.64,.325],{roughness:.9});
- for(const x of [-.39,.39])box(bodyParts.stoneArmor,"stoneSidePlate",[.12,.76,.39],"#758696",[x,1.58,0],{roughness:.9});
  bodyParts.neonArmor=new THREE.Group();avatarRoot.add(bodyParts.neonArmor);
- box(bodyParts.neonArmor,"neonChestFrame",[.66,.66,.075],"#167f83",[0,1.62,.278],{metalness:.45,roughness:.3});
- box(bodyParts.neonArmor,"neonChestCore",[.42,.42,.045],"#42f1df",[0,1.62,.33],{metalness:.2,roughness:.24});
- bodyParts.neonArmor.children[1].material.emissive=new THREE.Color("#12bcb1");bodyParts.neonArmor.children[1].material.emissiveIntensity=1.35;
  bodyParts.steelArmor=[];bodyParts.crystalArmor=[];bodyParts.runnerArmor=[];bodyParts.rocketArmor=[];
- for(const side of [-1,1]){const arm=side<0?bodyParts.armL:bodyParts.armR;const steel=new THREE.Group();arm.add(steel);bodyParts.steelArmor.push(steel);sphere(steel,"steelShoulder",.19,"#aebdca",[0,-.05,0],[1,1,.9],.45);box(steel,"steelForearmPlate",[.3,.42,.11],"#aebdca",[0,-.72,.16],{metalness:.55,roughness:.34});box(steel,"steelForearmInset",[.17,.25,.035],"#6f8498",[0,-.72,.225],{metalness:.55,roughness:.35});const crystal=new THREE.Group();arm.add(crystal);bodyParts.crystalArmor.push(crystal);box(crystal,"crystalBracer",[.31,.44,.13],"#a98bff",[0,-.72,.16],{metalness:.25,roughness:.28});box(crystal,"crystalBracerGem",[.13,.2,.045],"#e2d8ff",[0,-.72,.235],{metalness:.15,roughness:.2});const leg=side<0?bodyParts.legL:bodyParts.legR;const runner=new THREE.Group();leg.add(runner);bodyParts.runnerArmor.push(runner);box(runner,"runnerShinGuard",[.31,.43,.1],"#45b78b",[0,-.69,.15],{roughness:.4});box(runner,"runnerShinStripe",[.12,.24,.035],"#b4f0d4",[0,-.69,.21]);const rocket=new THREE.Group();leg.add(rocket);bodyParts.rocketArmor.push(rocket);box(rocket,"rocketShinGuard",[.34,.47,.13],"#e9784f",[0,-.68,.15],{metalness:.25,roughness:.38});box(rocket,"rocketShinInset",[.16,.27,.04],"#ffd08a",[0,-.68,.225]);}
+ for(const limb of [bodyParts.armL,bodyParts.armR,bodyParts.legL,bodyParts.legR]){
+  const groups=["steelArmor","crystalArmor","runnerArmor","rocketArmor"];
+  for(const name of groups){const g=new THREE.Group();limb.add(g);bodyParts[name].push(g)}
+ }
  bodyParts.robotFace=new THREE.Group();avatarRoot.add(bodyParts.robotFace);
- box(bodyParts.robotFace,"robotVisor",[.62,.28,.045],"#526b80",[0,2.7,.407],{metalness:.75,roughness:.22});
- for(const x of [-.16,.16]){const eye=sphere(bodyParts.robotFace,"robotEye",.045,"#6ef4ff",[x,2.72,.445]);eye.material.emissive=new THREE.Color("#21d9ff");eye.material.emissiveIntensity=1.4;}
  updateAvatarParts();
 }
-function updateAvatarParts(){const H=part(equipped.Head),T=part(equipped.Torso),A=part(equipped.Arms),L=part(equipped.Legs);bodyParts.head.material.color.set(H.color);bodyParts.torso.material.color.set(T.color);for(const n of ["armL","armR","shoulderL","shoulderR"])bodyParts[n].traverse(o=>{if(o.isMesh&&o.material&&!o.name.includes("steel")&&!o.name.includes("crystal"))o.material.color.set(A.color)});for(const n of ["legL","legR","kneeL","kneeR"])bodyParts[n].traverse(o=>{if(o.isMesh&&o.material&&!o.name.includes("runner")&&!o.name.includes("rocket"))o.material.color.set(L.color)});bodyParts.crown.visible=H.id==="crown-head";bodyParts.headRing.visible=false;bodyParts.robotFace.visible=H.id==="robot-head";bodyParts.hair.visible=H.id==="starter-head";bodyParts.hairBack.visible=H.id==="starter-head";bodyParts.browL.visible=H.id!=="robot-head";bodyParts.browR.visible=H.id!=="robot-head";bodyParts.mouth.visible=H.id!=="robot-head";bodyParts.core.visible=false;bodyParts.stoneArmor.visible=T.id==="rock-torso";bodyParts.neonArmor.visible=T.id==="neon-torso";bodyParts.steelArmor.forEach(g=>g.visible=A.id==="steel-arms");bodyParts.crystalArmor.forEach(g=>g.visible=A.id==="crystal-arms");bodyParts.runnerArmor.forEach(g=>g.visible=L.id==="runner-legs");bodyParts.rocketArmor.forEach(g=>g.visible=L.id==="rocket-legs");bodyParts.shoulderL.visible=A.id!=="steel-arms"&&A.id!=="crystal-arms";bodyParts.shoulderR.visible=bodyParts.shoulderL.visible;}
-function makeTree(x,z,scale=1){const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);scene.add(g);cylinder(g,"treeTrunk",.19,.31,2.25,"#65432f",[0,1.12,0],9);for(let i=0;i<3;i++){const b=cylinder(g,"treeBranch",.075,.12,.9,"#765039",[0,1.45+i*.18,0],7);b.rotation.z=(i%2?1:-1)*.72;b.position.x=(i%2?1:-1)*.28;}for(let i=0;i<4;i++){const y=2.1+i*.36,r=1.05-i*.17;const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(r,1),mat(i%2?"#286c43":"#347f4d",.92));crown.position.set((i%2?-.22:.2),y,(i%3-.9)*.13);crown.scale.set(1,.92,1);crown.castShadow=true;crown.receiveShadow=true;g.add(crown);}sphere(g,"leafHighlight",.42,"#4c965b",[-.42,2.75,.2],[1,.75,1]);}
+function updateAvatarParts(){
+ const H=part(equipped.Head),T=part(equipped.Torso),A=part(equipped.Arms),L=part(equipped.Legs);
+ bodyParts.head.material.color.set(H.color);
+ bodyParts.torso.material.color.set(T.color);
+ for(const n of ["armL","armR","handL","handR"])bodyParts[n].traverse(o=>{if(o.isMesh&&o.material)o.material.color.set(A.color)});
+ for(const n of ["legL","legR"])bodyParts[n].traverse(o=>{if(o.isMesh&&o.material)o.material.color.set(L.color)});
+ bodyParts.footL.material.color.set(L.color);bodyParts.footR.material.color.set(L.color);
+ bodyParts.crown.visible=H.id==="crown-head";
+ bodyParts.headRing.visible=false;bodyParts.robotFace.visible=false;
+ bodyParts.hair.visible=false;bodyParts.hairBack.visible=false;
+ bodyParts.browL.visible=false;bodyParts.browR.visible=false;
+ bodyParts.earL.visible=false;bodyParts.earR.visible=false;
+ bodyParts.core.visible=false;bodyParts.stoneArmor.visible=false;bodyParts.neonArmor.visible=false;
+ bodyParts.steelArmor.forEach(g=>g.visible=false);bodyParts.crystalArmor.forEach(g=>g.visible=false);
+ bodyParts.runnerArmor.forEach(g=>g.visible=false);bodyParts.rocketArmor.forEach(g=>g.visible=false);
+ bodyParts.shoulderL.visible=false;bodyParts.shoulderR.visible=false;
+ bodyParts.kneeL.visible=false;bodyParts.kneeR.visible=false;
+ bodyParts.shirtBand.visible=false;bodyParts.shirtBadge.visible=false;
+ bodyParts.belt.visible=false;bodyParts.beltBuckle.visible=false;
+ bodyParts.mouth.visible=H.id==="starter-head";
+ bodyParts.eyeL.visible=H.id==="starter-head";bodyParts.eyeR.visible=H.id==="starter-head";
+}function makeTree(x,z,scale=1){const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);scene.add(g);cylinder(g,"treeTrunk",.19,.31,2.25,"#65432f",[0,1.12,0],9);for(let i=0;i<3;i++){const b=cylinder(g,"treeBranch",.075,.12,.9,"#765039",[0,1.45+i*.18,0],7);b.rotation.z=(i%2?1:-1)*.72;b.position.x=(i%2?1:-1)*.28;}for(let i=0;i<4;i++){const y=2.1+i*.36,r=1.05-i*.17;const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(r,1),mat(i%2?"#286c43":"#347f4d",.92));crown.position.set((i%2?-.22:.2),y,(i%3-.9)*.13);crown.scale.set(1,.92,1);crown.castShadow=true;crown.receiveShadow=true;g.add(crown);}sphere(g,"leafHighlight",.42,"#4c965b",[-.42,2.75,.2],[1,.75,1]);}
 function makeGrassTuft(x,z){const g=new THREE.Group();g.position.set(x,.03,z);scene.add(g);for(let i=0;i<3;i++){const blade=new THREE.Mesh(new THREE.ConeGeometry(.055,.36,5),mat(i%2?"#4b8c4b":"#639b50",1));blade.position.set((i-1)*.1,.16,0);blade.rotation.z=(i-1)*-.28;blade.castShadow=true;g.add(blade);}}
 function makeRock(x,z,scale=1){const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.5,0),mat("#788982",.96));rock.position.set(x,.25*scale,z);rock.scale.set(1.25*scale,.65*scale,.95*scale);rock.rotation.set(.2,x*.13,z*.17);rock.castShadow=true;rock.receiveShadow=true;scene.add(rock);}
 function makeLamp(x,z){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);cylinder(g,"pole",.055,.075,3,"#344b5a",[0,1.5,0]);sphere(g,"lamp",.23,"#ffe8a2",[0,3.1,0]);const light=new THREE.PointLight("#ffe2a0",1.3,8);light.position.set(0,3,0);g.add(light)}
