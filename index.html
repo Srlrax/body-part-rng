@@ -1,0 +1,52 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Body Part RNG</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>BODY PART RNG</h1>
+    <div id="playerCount">Players online: 1</div>
+  </header>
+
+  <main>
+    <section class="stats">
+      <div>💰 Money: <span id="money">0</span></div>
+      <div>❤️ Health: <span id="health">100</span></div>
+      <div>⚔️ Damage: <span id="damage">10</span></div>
+      <div>💵 Per Second: <span id="income">1</span></div>
+    </section>
+
+    <section class="character">
+      <div class="avatar">🧍</div>
+      <h2>Your Character</h2>
+      <div id="equipped">No special parts equipped</div>
+    </section>
+
+    <section class="roll">
+      <div id="result">Ready to roll?</div>
+      <button id="rollButton">ROLL!</button>
+    </section>
+
+    <section class="inventory">
+      <h2>Inventory</h2>
+      <div id="inventory">No body parts yet.</div>
+    </section>
+
+    <section class="multiplayer">
+      <h2>Multiplayer Lobby</h2>
+      <input id="roomCode" placeholder="Enter room code">
+      <button id="joinRoom">Join Room</button>
+      <button id="createRoom">Create Room</button>
+      <div id="lobbyStatus">Not connected</div>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+  <script src="multiplayer.js"></script>
+</body>
+</html>
