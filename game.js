@@ -35,18 +35,17 @@ function renderInventory(){
  $("equipped").innerHTML=["Head","Torso","Arms","Legs"].map(slot=>{const p=part(equipped[slot]);return '<div class="equip-slot"><span class="slot-icon">'+p.icon+'</span><b>'+slot+'</b><span>'+p.name+'</span></div>'}).join("");
 }
 function equip(id){if(!inventory.includes(id))return;equipped[part(id).slot]=id;updateStats();renderInventory();persist();notify(part(id).name+" equipped!")}
+let rollBusy=false,rollSpin=0;
 function roll(){
- const weightOf=p=>p.weight*(p.rarity==="Common"?1:p.rarity==="Rare"?1+upgrades.luck*.25:1+upgrades.luck*.25);
- const total=parts.reduce((n,p)=>n+weightOf(p),0);let r=Math.random()*total,pick=parts[0];
- for(const p of parts){r-=weightOf(p);if(r<=0){pick=p;break}}
- inventory.push(pick.id);if(!equipped[pick.slot])equipped[pick.slot]=pick.id;
- questProgress++;if(questProgress>=5){money+=questReward;questProgress=0;notify("QUEST COMPLETE! +"+questReward+" coins");persist()}
- $("result").textContent=pick.icon+" "+pick.name+" — "+pick.rarity;
- updateStats();renderInventory();updateQuest();persist();
- const result=$("result");result.className="roll-result rarity-"+pick.rarity.toLowerCase();result.textContent=pick.icon+" "+pick.name+" — "+pick.rarity;
- const button=$("rollButton");button.classList.remove("rolling");void button.offsetWidth;button.classList.add("rolling");
- if(pick.rarity!=="Common"){const flash=$("rarityFlash");if(flash){flash.className="rarity-flash "+pick.rarity.toLowerCase();setTimeout(()=>flash.className="rarity-flash",550)}}
- if(questProgress===0)notify("QUEST COMPLETE! +"+questReward+" coins");else notify("You rolled "+pick.name+"!");
+ if(rollBusy)return;rollBusy=true;const button=$("rollButton"),result=$("result"),flash=$("rarityFlash");
+ button.disabled=true;button.classList.add("rolling");rollSpin=1;let ticks=0;
+ const timer=setInterval(()=>{const preview=parts[Math.floor(Math.random()*parts.length)];result.className="roll-result rolling-result";result.textContent="✦ "+preview.icon+" "+preview.name+" ✦";ticks++;if(ticks>=9){clearInterval(timer);
+ const weightOf=p=>p.weight*(p.rarity==="Common"?1:1+upgrades.luck*.25),total=parts.reduce((n,p)=>n+weightOf(p),0);let r=Math.random()*total,pick=parts[0];for(const p of parts){r-=weightOf(p);if(r<=0){pick=p;break}}
+ inventory.push(pick.id);if(!equipped[pick.slot])equipped[pick.slot]=pick.id;questProgress++;let completed=questProgress>=5;if(completed){money+=questReward;questProgress=0}
+ result.className="roll-result rarity-"+pick.rarity.toLowerCase();result.textContent=pick.icon+" "+pick.name+" — "+pick.rarity;updateStats();renderInventory();updateQuest();persist();
+ if(pick.rarity!=="Common"&&flash){flash.className="rarity-flash "+pick.rarity.toLowerCase();setTimeout(()=>flash.className="rarity-flash",650)}
+ notify(completed?"QUEST COMPLETE! +"+questReward+" coins":"You rolled "+pick.name+"!");button.disabled=false;button.classList.remove("rolling");rollBusy=false;rollSpin=0;
+ }},105);
 }
 $("rollButton").onclick=roll;
 $("openInventory").onclick=()=>$("inventoryModal").classList.remove("hidden");
@@ -71,9 +70,33 @@ function tile(x,z,c){let p=iso(x,z);ctx.beginPath();ctx.moveTo(p.x,p.y-16);ctx.l
 function block(x,z,ww,dd,hh,c){let p=iso(x,z),a=ww*TILE/2,b=dd*TILE*.24,v=hh*TILE;ctx.beginPath();ctx.moveTo(p.x-a,p.y-v);ctx.lineTo(p.x,p.y-v-b);ctx.lineTo(p.x+a,p.y-v);ctx.lineTo(p.x,p.y-v+b);ctx.closePath();ctx.fillStyle=c;ctx.fill();ctx.strokeStyle="#172b4088";ctx.stroke();ctx.beginPath();ctx.moveTo(p.x-a,p.y-v);ctx.lineTo(p.x,p.y-v+b);ctx.lineTo(p.x,p.y+b);ctx.lineTo(p.x-a,p.y);ctx.closePath();ctx.fillStyle="#25435b";ctx.fill();ctx.beginPath();ctx.moveTo(p.x,p.y-v+b);ctx.lineTo(p.x+a,p.y-v);ctx.lineTo(p.x+a,p.y);ctx.lineTo(p.x,p.y+b);ctx.closePath();ctx.fillStyle="#37627d";ctx.fill()}
 function rounded(x,y,a,b,r,c,s){ctx.beginPath();ctx.roundRect(x,y,a,b,r);ctx.fillStyle=c;ctx.fill();if(s){ctx.strokeStyle=s;ctx.lineWidth=2;ctx.stroke()}}
 function tree(x,z){let p=iso(x,z),c=iso(x,z,1.6);block(x,z,.35,.35,1.1,"#795238");ctx.fillStyle="#27754e";ctx.beginPath();ctx.arc(c.x,c.y,22,0,7);ctx.fill();ctx.fillStyle="#65b979";ctx.beginPath();ctx.arc(c.x-7,c.y-8,11,0,7);ctx.fill()}
-function shop(){block(0,-14,6,4,.35,"#344b61");block(0,-16,5.3,.4,2.5,"#397ba4");block(-2.7,-14,.4,3.8,2.5,"#315f83");block(2.7,-14,.4,3.8,2.5,"#315f83");block(0,-14,6,.3,.2,"#e3b75b");let p=iso(0,-16.2,3.3);rounded(p.x-52,p.y-13,104,24,6,"#142b43ed","#ffe08b");ctx.fillStyle="#fff0ad";ctx.font="900 11px Inter";ctx.textAlign="center";ctx.fillText("UPGRADE SHOP",p.x,p.y+3);let d=iso(0,-16.2);ctx.fillStyle="#173047";ctx.fillRect(d.x-13,d.y-46,26,46)}
+function shop(){
+ const p=iso(0,-14),x=p.x,y=p.y;ctx.save();ctx.fillStyle="#14273a55";ctx.beginPath();ctx.ellipse(x,y+30,126,30,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#53677a";ctx.fillRect(x-104,y-28,208,58);ctx.fillStyle="#34495d";ctx.fillRect(x-104,y+20,208,12);
+ ctx.fillStyle="#8b5b37";ctx.fillRect(x-96,y-111,192,84);ctx.fillStyle="#c18a50";ctx.fillRect(x-88,y-103,176,67);
+ ctx.fillStyle="#573923";ctx.fillRect(x-96,y-111,192,9);ctx.fillRect(x-96,y-39,192,8);ctx.fillRect(x-88,y-103,9,67);ctx.fillRect(x+79,y-103,9,67);
+ ctx.fillStyle="#f0c76c";ctx.fillRect(x-111,y-129,222,20);for(let i=0;i<8;i++){ctx.fillStyle=i%2?"#e8eee9":"#b84f43";ctx.fillRect(x-111+i*27.75,y-129,27.75,20)}ctx.fillStyle="#f6d98e";ctx.fillRect(x-115,y-111,230,5);
+ for(const wx of [x-72,x+42]){ctx.fillStyle="#25475d";ctx.fillRect(wx,y-91,34,35);ctx.strokeStyle="#f2d49a";ctx.lineWidth=4;ctx.strokeRect(wx,y-91,34,35);ctx.fillStyle="#9dd9e8";ctx.fillRect(wx+4,y-87,26,27);ctx.fillStyle="#ffffff77";ctx.fillRect(wx+7,y-84,5,20);ctx.fillStyle="#f2d49a";ctx.fillRect(wx+15,y-91,3,35)}
+ ctx.fillStyle="#3b2921";ctx.fillRect(x-19,y-91,39,64);ctx.fillStyle="#9c6337";ctx.fillRect(x-15,y-87,31,60);ctx.fillStyle="#e9bd69";ctx.beginPath();ctx.arc(x+9,y-57,2.5,0,Math.PI*2);ctx.fill();
+ ctx.beginPath();ctx.moveTo(x-121,y-129);ctx.lineTo(x,y-188);ctx.lineTo(x+121,y-129);ctx.closePath();ctx.fillStyle="#405d78";ctx.fill();ctx.strokeStyle="#e3c58b";ctx.lineWidth=5;ctx.stroke();
+ ctx.beginPath();ctx.moveTo(x-101,y-132);ctx.lineTo(x,y-180);ctx.lineTo(x+101,y-132);ctx.closePath();ctx.fillStyle="#8b463c";ctx.fill();
+ rounded(x-75,y-160,150,27,7,"#173149","#f6d27b");ctx.fillStyle="#fff0bd";ctx.font="900 12px Inter,Arial";ctx.textAlign="center";ctx.fillText("✦ UPGRADE SHOP ✦",x,y-142);
+ ctx.fillStyle="#e6bc68";ctx.fillRect(x-30,y+28,60,7);ctx.fillStyle="#fff0bd";ctx.font="900 10px Inter,Arial";ctx.fillText("PRESS E",x,y+50);ctx.restore();
+}
 function world(){let g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,"#82c0ed");g.addColorStop(.48,"#dcebe8");g.addColorStop(.49,"#82ae78");g.addColorStop(1,"#3d7655");ctx.fillStyle=g;ctx.fillRect(0,0,w,h);let cx=Math.floor(player.x),cz=Math.floor(player.z);for(let z=cz-14;z<=cz+14;z++)for(let x=cx-14;x<=cx+14;x++){tile(x,z,((x+z)&1)?"#76a96e":"#6d9f68");if(Math.abs(x)<3&&z<8&&z>-26)tile(x,z,"#a9a28c")}for(let i=0;i<12;i++){let a=i*Math.PI/6;tree(Math.cos(a)*15,Math.sin(a)*15)}for(let i=0;i<6;i++){let x=-12+i*4.8,p=iso(x,-5,2);block(x,-5,.12,.12,2,"#3d5362");ctx.fillStyle="#ffe7a1";ctx.beginPath();ctx.arc(p.x,p.y,5,0,7);ctx.fill()}shop();for(let [x,z] of [[-7,-3],[7,-3],[-8,7],[8,7]])block(x,z,1.6,.35,.35,"#8b603c")}
-function avatar(){let p=iso(player.x,player.z,player.y),s=Math.max(.78,Math.min(1.1,h/700)),step=Math.sin(player.walk)*4,H=part(equipped.Head),T=part(equipped.Torso),A=part(equipped.Arms),L=part(equipped.Legs);ctx.save();ctx.translate(p.x,p.y);ctx.scale(s,s);ctx.fillStyle="#142a3b66";ctx.beginPath();ctx.ellipse(0,4,28,9,0,0,7);ctx.fill();rounded(-18,-48,16,49,5,L.color,"#172b40");rounded(2,-48,16,49,5,L.color,"#172b40");rounded(-30,-84,14,49,6,A.color,"#172b40");rounded(16,-84,14,49,6,A.color,"#172b40");rounded(-23,-111,46,62,8,T.color,"#172b40");rounded(-7,-59,14,12,3,"#d5a47f","#172b40");rounded(-18,-151,36,38,9,H.color,"#172b40");ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(-7,-137,4,0,7);ctx.arc(7,-137,4,0,7);ctx.fill();ctx.fillStyle="#18283b";ctx.beginPath();ctx.arc(-6,-137,2,0,7);ctx.arc(8,-137,2,0,7);ctx.fill();if(H.id==="crown-head"){ctx.fillStyle="#f4c64e";ctx.beginPath();ctx.moveTo(-18,-148);ctx.lineTo(-17,-166);ctx.lineTo(-7,-155);ctx.lineTo(0,-171);ctx.lineTo(8,-155);ctx.lineTo(18,-166);ctx.lineTo(18,-148);ctx.closePath();ctx.fill()}ctx.restore();let q=iso(player.x,player.z,2.6);rounded(q.x-22,q.y-10,44,18,6,"#10243be8","#ffffff77");ctx.fillStyle="#fff";ctx.font="900 10px Inter";ctx.textAlign="center";ctx.fillText("YOU",q.x,q.y+3)}
+function avatar(){
+ const p=iso(player.x,player.z,player.y),s=Math.max(.78,Math.min(1.1,h/700)),moving=!!(keys.KeyW||keys.KeyA||keys.KeyS||keys.KeyD||keys.ArrowUp||keys.ArrowDown||keys.ArrowLeft||keys.ArrowRight),swing=moving?Math.sin(player.walk)*.62:Math.sin(performance.now()*.002)*.035;
+ const H=part(equipped.Head),T=part(equipped.Torso),A=part(equipped.Arms),L=part(equipped.Legs);ctx.save();ctx.translate(p.x,p.y);ctx.scale(s,s);
+ ctx.fillStyle="#142a3b66";ctx.beginPath();ctx.ellipse(0,4,28,9,0,0,7);ctx.fill();
+ ctx.save();ctx.translate(-10,-48);ctx.rotate(-swing);rounded(-8,0,16,49,5,L.color,"#172b40");rounded(-10,42,22,9,4,"#263c56","#172b40");ctx.restore();
+ ctx.save();ctx.translate(10,-48);ctx.rotate(swing);rounded(-8,0,16,49,5,L.color,"#172b40");rounded(-10,42,22,9,4,"#263c56","#172b40");ctx.restore();
+ ctx.save();ctx.translate(-23,-84);ctx.rotate(swing*.82);rounded(-7,0,14,49,6,A.color,"#172b40");ctx.restore();
+ ctx.save();ctx.translate(23,-84);ctx.rotate(-swing*.82);rounded(-7,0,14,49,6,A.color,"#172b40");ctx.restore();
+ rounded(-23,-111,46,62,8,T.color,"#172b40");rounded(-7,-59,14,12,3,"#d5a47f","#172b40");rounded(-18,-151,36,38,9,H.color,"#172b40");
+ ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(-7,-137,4,0,7);ctx.arc(7,-137,4,0,7);ctx.fill();ctx.fillStyle="#18283b";ctx.beginPath();ctx.arc(-6,-137,2,0,7);ctx.arc(8,-137,2,0,7);ctx.fill();
+ if(H.id==="crown-head"){ctx.fillStyle="#f4c64e";ctx.beginPath();ctx.moveTo(-18,-148);ctx.lineTo(-17,-166);ctx.lineTo(-7,-155);ctx.lineTo(0,-171);ctx.lineTo(8,-155);ctx.lineTo(18,-166);ctx.lineTo(18,-148);ctx.closePath();ctx.fill()}
+ ctx.restore();let q=iso(player.x,player.z,2.6);rounded(q.x-22,q.y-10,44,18,6,"#10243be8","#ffffff77");ctx.fillStyle="#fff";ctx.font="900 10px Inter";ctx.textAlign="center";ctx.fillText("YOU",q.x,q.y+3);
+}
 function draw(){world();avatar();let n=Math.hypot(player.x,player.z+14)<3.5;if(n!==nearShop){nearShop=n;$("shopPrompt").classList.toggle("hidden",!n)}}
 function frame(now){let dt=Math.min((now-last)/1000||0,.04);last=now;let x=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0),z=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0);if(x||z){let n=Math.hypot(x,z);x/=n;z/=n;let v=(4.7+upgrades.speed*1.15)*((keys.ShiftLeft||keys.ShiftRight)?1.45:1);player.x=Math.max(-24,Math.min(24,player.x+x*v*dt));player.z=Math.max(-24,Math.min(24,player.z+z*v*dt));player.walk+=dt*12}if((keys.Space||keys.KeyJ)&&player.y===0)player.vy=7;player.vy-=18*dt;player.y=Math.max(0,player.y+player.vy*dt);if(!player.y)player.vy=0;draw();requestAnimationFrame(frame)}
 $("shopModal").classList.add("hidden");canvas=document.createElement("canvas");canvas.id="worldCanvas";canvas.tabIndex=0;canvas.style.cssText="display:block;width:100%;height:100%;outline:none;touch-action:none";$("gameCanvas").replaceChildren(canvas);ctx=canvas.getContext("2d");if(!ctx)throw Error("Canvas unavailable");canvas.addEventListener("pointerdown",()=>canvas.focus());document.addEventListener("keydown",e=>{keys[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="KeyE"&&nearShop){$("shopModal").classList.remove("hidden");renderShop()}});document.addEventListener("keyup",e=>keys[e.code]=false);window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));resize();window.addEventListener("resize",resize);renderShop();renderInventory();updateStats();updateQuest();notify("Explore the plaza! Walk to the shop and press E.");setInterval(()=>{if(income>0){money+=income;updateStats();persist()}},1000);requestAnimationFrame(frame);
