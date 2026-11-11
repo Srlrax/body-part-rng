@@ -1,4 +1,5 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+import { RoundedBoxGeometry } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/geometries/RoundedBoxGeometry.js";
 const $=id=>document.getElementById(id);
 const SAVE_KEY="bodyPartRngSaveV2";
 const parts=[
@@ -25,16 +26,16 @@ function updateStats(){stats();$("money").textContent=Math.floor(money).toLocale
 function updateQuest(){$("questFill").style.width=Math.min(100,questProgress/5*100)+"%";$("questCount").textContent=Math.min(questProgress,5)+" / 5"}
 let player,scene,camera,renderer,clock,avatarRoot,bodyParts={},shopPosition=new THREE.Vector3(0,0,-12),cameraYaw=0,cameraPitch=.22,cameraDistance=7,keys={},rollBusy=false;
 const mat=(color,roughness=.72,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
-function box(parent,name,size,color,pos,opts={}){const m=new THREE.Mesh(new THREE.BoxGeometry(...size),mat(color,opts.roughness??.72,opts.metalness??0));m.name=name;m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
+function box(parent,name,size,color,pos,opts={}){const geometry=opts.rounded?new RoundedBoxGeometry(...size,3,opts.radius??.09):new THREE.BoxGeometry(...size);const m=new THREE.Mesh(geometry,mat(color,opts.roughness??.72,opts.metalness??0));m.name=name;m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
 function sphere(parent,name,r,color,pos,scale=[1,1,1],metalness=0){const m=new THREE.Mesh(new THREE.SphereGeometry(r,24,16),mat(color,.48,metalness));m.name=name;m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;parent.add(m);return m}
 function cylinder(parent,name,rt,rb,h,color,pos,segments=16){const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,segments),mat(color));m.name=name;m.position.set(...pos);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-function makeLimb(parent,name,color,top,bottom,r=.15){const pivot=new THREE.Group();pivot.position.set(...top);parent.add(pivot);const len=Math.hypot(top[0]-bottom[0],top[1]-bottom[1],top[2]-bottom[2]);const width=r*2.15;const mesh=new THREE.Mesh(new THREE.BoxGeometry(width,len,width),mat(color,.62));mesh.position.set(0,-len*.5,0);mesh.castShadow=true;mesh.receiveShadow=true;pivot.add(mesh);const joint=new THREE.Mesh(new THREE.BoxGeometry(width*.96,width*.96,width*.96),mat(color,.62));joint.position.set(0,-len,0);joint.castShadow=true;pivot.add(joint);return pivot}
+function makeLimb(parent,name,color,top,bottom,r=.15){const pivot=new THREE.Group();pivot.position.set(...top);parent.add(pivot);const len=Math.hypot(top[0]-bottom[0],top[1]-bottom[1],top[2]-bottom[2]);const width=r*2.15;const mesh=new THREE.Mesh(new RoundedBoxGeometry(width,len,width,3,.075),mat(color,.62));mesh.position.set(0,-len*.5,0);mesh.castShadow=true;mesh.receiveShadow=true;pivot.add(mesh);const joint=new THREE.Mesh(new RoundedBoxGeometry(width*.96,width*.96,width*.96,3,.07),mat(color,.62));joint.position.set(0,-len,0);joint.castShadow=true;pivot.add(joint);return pivot}
 function buildAvatar(){
  avatarRoot=new THREE.Group();avatarRoot.scale.setScalar(.72);scene.add(avatarRoot);
  // Classic blocky Roblox-style body: square head, red torso, gray arms, blue legs.
- bodyParts.torso=box(avatarRoot,"torso",[1.12,1.25,.58],part(equipped.Torso).color,[0,1.72,0],{roughness:.72});
- bodyParts.neck=box(avatarRoot,"neck",[.3,.18,.3],"#bfc3c7",[0,2.43,0]);
- bodyParts.head=box(avatarRoot,"head",[.88,.88,.84],part(equipped.Head).color,[0,2.96,0],{roughness:.72});
+ bodyParts.torso=box(avatarRoot,"torso",[1.08,1.22,.56],part(equipped.Torso).color,[0,1.72,0],{roughness:.72,rounded:true,radius:.12});
+ bodyParts.neck=box(avatarRoot,"neck",[.28,.18,.28],"#bfc3c7",[0,2.43,0],{rounded:true,radius:.07});
+ bodyParts.head=box(avatarRoot,"head",[.84,.84,.8],part(equipped.Head).color,[0,2.96,0],{roughness:.72,rounded:true,radius:.13});
  // Simple classic face: two dark eyes and a curved smile.
  bodyParts.eyeL=sphere(avatarRoot,"eyeL",.045,"#202124",[-.17,3.03,.43]);
  bodyParts.eyeR=sphere(avatarRoot,"eyeR",.045,"#202124",[.17,3.03,.43]);
@@ -47,12 +48,12 @@ function buildAvatar(){
  avatarRoot.add(bodyParts.mouth);
  bodyParts.armL=makeLimb(avatarRoot,"armL",part(equipped.Arms).color,[-.68,2.18,0],[-.72,.98,0],.205);
  bodyParts.armR=makeLimb(avatarRoot,"armR",part(equipped.Arms).color,[.68,2.18,0],[.72,.98,0],.205);
- bodyParts.handL=box(bodyParts.armL,"handL",[.43,.28,.43],part(equipped.Arms).color,[0,-1.31,0]);
- bodyParts.handR=box(bodyParts.armR,"handR",[.43,.28,.43],part(equipped.Arms).color,[0,-1.31,0]);
+ bodyParts.handL=box(bodyParts.armL,"handL",[.38,.27,.38],part(equipped.Arms).color,[0,-1.31,0],{rounded:true,radius:.1});
+ bodyParts.handR=box(bodyParts.armR,"handR",[.38,.27,.38],part(equipped.Arms).color,[0,-1.31,0],{rounded:true,radius:.1});
  bodyParts.legL=makeLimb(avatarRoot,"legL",part(equipped.Legs).color,[-.28,1.12,0],[-.29,.12,0],.245);
  bodyParts.legR=makeLimb(avatarRoot,"legR",part(equipped.Legs).color,[.28,1.12,0],[.29,.12,0],.245);
- bodyParts.footL=box(avatarRoot,"footL",[.49,.2,.68],"#173fd1",[-.29,.1,.12]);
- bodyParts.footR=box(avatarRoot,"footR",[.49,.2,.68],"#173fd1",[.29,.1,.12]);
+ bodyParts.footL=box(avatarRoot,"footL",[.46,.2,.64],"#173fd1",[-.29,.1,.12],{rounded:true,radius:.07});
+ bodyParts.footR=box(avatarRoot,"footR",[.46,.2,.64],"#173fd1",[.29,.1,.12],{rounded:true,radius:.07});
  bodyParts.soleL=box(avatarRoot,"soleL",[.49,.07,.68],"#102b91",[-.29,.035,.12]);
  bodyParts.soleR=box(avatarRoot,"soleR",[.49,.07,.68],"#102b91",[.29,.035,.12]);
  bodyParts.crown=new THREE.Group();avatarRoot.add(bodyParts.crown);
@@ -110,15 +111,45 @@ function updateAvatarParts(){
 function makeGrassTuft(x,z){const g=new THREE.Group();g.position.set(x,.03,z);scene.add(g);for(let i=0;i<3;i++){const blade=new THREE.Mesh(new THREE.ConeGeometry(.055,.36,5),mat(i%2?"#4b8c4b":"#639b50",1));blade.position.set((i-1)*.1,.16,0);blade.rotation.z=(i-1)*-.28;blade.castShadow=true;g.add(blade);}}
 function makeRock(x,z,scale=1){const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.5,0),mat("#788982",.96));rock.position.set(x,.25*scale,z);rock.scale.set(1.25*scale,.65*scale,.95*scale);rock.rotation.set(.2,x*.13,z*.17);rock.castShadow=true;rock.receiveShadow=true;scene.add(rock);}
 function makeLamp(x,z){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);cylinder(g,"pole",.055,.075,3,"#344b5a",[0,1.5,0]);sphere(g,"lamp",.23,"#ffe8a2",[0,3.1,0]);const light=new THREE.PointLight("#ffe2a0",1.3,8);light.position.set(0,3,0);g.add(light)}
-function makeShop(){const g=new THREE.Group();g.position.copy(shopPosition);scene.add(g);
- box(g,"foundation",[6.8,.3,4.2],"#9aa8aa",[0,.15,0]);box(g,"shopBody",[6.2,3.2,3.7],"#a66d43",[0,1.85,0]);
- box(g,"frontPanel",[6.25,.2,.15],"#f0d19a",[0,3.35,1.88]);
- const roof=new THREE.Mesh(new THREE.ConeGeometry(4.6,2.1,4),mat("#405b78"));roof.rotation.y=Math.PI/4;roof.position.set(0,4.35,0);roof.scale.set(1,.8,.72);roof.castShadow=true;g.add(roof);
- box(g,"awning",[6.4,.25,.8],"#f3d9a1",[0,2.85,2.1]);for(let i=0;i<8;i++)box(g,"awningStripe",[.39,.27,.83],i%2?"#f3eee0":"#b94e42",[-2.75+i*.79,2.85,2.11]);
- box(g,"door",[1.25,2.4,.16],"#503525",[0,1.35,1.94]);sphere(g,"knob",.07,"#f6d27b",[.42,1.3,2.05]);
- for(const x of [-2.05,2.05]){box(g,"windowFrame",[1.25,1.25,.18],"#f4d59a",[x,2,1.94]);box(g,"windowGlass",[1.02,1.02,.08],"#72b6ce",[x,2,2.05]);box(g,"windowBar",[.07,1.02,.1],"#f7dfad",[x,2,2.11]);}
- box(g,"signBoard",[3,.58,.22],"#173149",[0,3.7,2.0]);const canvas=document.createElement("canvas");canvas.width=512;canvas.height=96;const c=canvas.getContext("2d");c.fillStyle="#fff0bd";c.font="bold 43px Arial";c.textAlign="center";c.fillText("UPGRADE SHOP",256,64);const tex=new THREE.CanvasTexture(canvas);const sign=new THREE.Mesh(new THREE.PlaneGeometry(2.85,.52),new THREE.MeshBasicMaterial({map:tex,transparent:true}));sign.position.set(0,3.7,2.13);g.add(sign);
- const pad=box(g,"welcomeMat",[2.4,.08,1.1],"#d7b56b",[0,.34,3.1]);pad.material.color.set("#d7b56b");
+function makeShop(){
+ const g=new THREE.Group();g.position.copy(shopPosition);scene.add(g);
+ const wood="#593b2b",woodLight="#8a5a3c",cream="#e8d5ae",roofDark="#344c60",gold="#e9bd65";
+ box(g,"stoneFoundation",[7.8,.38,5.1],"#87918c",[0,.19,0]);
+ box(g,"frontStep",[3.1,.22,1.0],"#c4b28e",[0,.48,2.9]);
+ box(g,"shopBody",[6.4,3.25,4.1],cream,[0,1.98,0]);
+ // Timber framing makes the building feel like a crafted game-world shop.
+ for(const x of [-3.05,3.05]){box(g,"frontTimberPost",[.22,3.25,.24],wood,[x,1.98,2.08]);box(g,"sideTimberPost",[.2,3.1,.22],wood,[x,1.95,-2.02]);}
+ box(g,"frontBeam",[6.45,.24,.25],wood,[0,3.48,2.08]);
+ box(g,"sideBeam",[.22,.24,4.15],wood,[3.12,3.48,0]);
+ // Steep two-sided roof with visible fascia and ridge.
+ const roofA=box(g,"roofLeft",[4.0,.28,5.0],roofDark,[-1.45,4.18,0],{rounded:true,radius:.07});roofA.rotation.z=-.48;
+ const roofB=box(g,"roofRight",[4.0,.28,5.0],roofDark,[1.45,4.18,0],{rounded:true,radius:.07});roofB.rotation.z=.48;
+ box(g,"roofRidge",[.25,.22,5.1],wood,[0,5.12,0],{rounded:true,radius:.08});
+ // Warm front awning and striped canopy.
+ box(g,"awningBase",[6.65,.2,1.05],woodLight,[0,2.98,2.45]);
+ for(let i=0;i<9;i++)box(g,"awningStripe",[.72,.12,1.08],i%2?"#f2e5c8":"#b94d42",[-3.2+i*.8,3.1,2.46]);
+ // Door, glowing windows, and decorative crossbars.
+ box(g,"doorFrame",[1.55,2.55,.2],wood,[-.05,1.72,2.12]);
+ box(g,"door",[1.25,2.3,.12],"#76513b",[-.05,1.68,2.25],{rounded:true,radius:.06});
+ box(g,"doorInset",[.82,1.7,.035],"#a47751",[-.05,1.76,2.33],{rounded:true,radius:.04});
+ sphere(g,"doorKnob",.075,gold,[.42,1.62,2.38]);
+ for(const x of [-2.0,2.0]){
+  box(g,"windowFrame",[1.35,1.42,.2],wood,[x,2.15,2.12]);
+  box(g,"windowGlass",[1.08,1.15,.07],"#83c7d5",[x,2.17,2.25]);
+  box(g,"windowMullionV",[.07,1.15,.08],cream,[x,2.17,2.31]);
+  box(g,"windowMullionH",[1.08,.07,.08],cream,[x,2.17,2.31]);
+  box(g,"windowSill",[1.55,.16,.38],woodLight,[x,1.42,2.22]);
+ }
+ // Bold readable sign with a warm border.
+ box(g,"signFrame",[3.7,.78,.24],gold,[0,3.9,2.28],{rounded:true,radius:.1});
+ box(g,"signBoard",[3.48,.58,.12],"#243c50",[0,3.9,2.43],{rounded:true,radius:.07});
+ const canvas=document.createElement("canvas");canvas.width=768;canvas.height=128;const c=canvas.getContext("2d");
+ c.fillStyle="#fff0c8";c.font="900 54px Arial";c.textAlign="center";c.textBaseline="middle";c.fillText("UPGRADE SHOP",384,65);
+ const tex=new THREE.CanvasTexture(canvas);const sign=new THREE.Mesh(new THREE.PlaneGeometry(3.28,.52),new THREE.MeshBasicMaterial({map:tex,transparent:true}));sign.position.set(0,3.9,2.51);g.add(sign);
+ // Exterior lanterns and small display pedestals.
+ for(const x of [-2.8,2.8]){box(g,"lanternMount",[.16,.16,.35],wood,[x,3.0,2.27]);const lamp=sphere(g,"warmLantern",.18,"#ffe3a0",[x,2.75,2.34]);const light=new THREE.PointLight("#ffd58a",.65,5);light.position.set(x,2.75,2.55);g.add(light);}
+ for(const x of [-2.35,2.35]){box(g,"displayCrate",[.62,.72,.62],"#9a704b",[x,.82,3.12],{rounded:true,radius:.06});box(g,"crateTop",[.68,.1,.68],gold,[x,1.23,3.12],{rounded:true,radius:.04});}
+ box(g,"welcomeMat",[2.5,.07,1.15],"#314e5c",[0,.43,3.5],{rounded:true,radius:.08});
 }
 
 function makeTrail(points,width=3){
