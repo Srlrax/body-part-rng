@@ -71,3 +71,6 @@
 @keyframes rollButtonPulse{from{transform:scale(.98) rotate(-1deg)}to{transform:scale(1.045) rotate(1deg)}}
 .rolling-result{color:#fff1a8!important;border:1px solid #ffdc7b!important;animation:resultFlip .18s ease;box-shadow:0 0 18px #ffcf5b66}
 @keyframes resultFlip{0%{transform:scale(.75) rotateX(70deg);opacity:.2}100%{transform:scale(1) rotateX(0);opacity:1}}
+
+/* Third-person 3D viewport */
+#gameCanvas canvas{cursor:grab;touch-action:none;user-select:none}#gameCanvas canvas:active{cursor:grabbing}
