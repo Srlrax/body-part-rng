@@ -260,17 +260,26 @@ function addWorld() {
   }
 }
 function init3D() {
+  // Wait until the full-screen game container has been laid out before creating WebGL.
+  requestAnimationFrame(() => start3D());
+}
+function start3D() {
   try {
+    const width = Math.max(mount.clientWidth, window.innerWidth);
+    const height = Math.max(mount.clientHeight, window.innerHeight);
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x9bc4e8);
     scene.fog = new THREE.Fog(0x9bc4e8,28,65);
-    camera = new THREE.PerspectiveCamera(65, mount.clientWidth/mount.clientHeight,.1,150);
+    camera = new THREE.PerspectiveCamera(65, width/height,.1,150);
     renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:"high-performance"});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio,1.7));
-    renderer.setSize(mount.clientWidth,mount.clientHeight);
+    renderer.setSize(width,height);
     renderer.shadowMap.enabled=true;
     renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     renderer.outputColorSpace=THREE.SRGBColorSpace;
+    renderer.domElement.style.position = "absolute";
+    renderer.domElement.style.inset = "0";
+    renderer.domElement.style.zIndex = "0";
     mount.appendChild(renderer.domElement);
     const hemi=new THREE.HemisphereLight(0xe4f4ff,0x52627c,2.1); scene.add(hemi);
     const sun=new THREE.DirectionalLight(0xffffff,2.4); sun.position.set(-8,16,9); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
@@ -280,16 +289,17 @@ function init3D() {
     camera.lookAt(0,1.25,0);
     clock=new THREE.Clock();
     window.addEventListener("resize",resize3D);
+    if (window.ResizeObserver) new ResizeObserver(resize3D).observe(mount);
     renderer.domElement.addEventListener("click",()=>renderer.domElement.focus());
     animate();
   } catch (error) {
     console.error(error);
-    mount.innerHTML='<div class="empty-state" style="padding:40px">Your browser could not start the 3D scene. Try refreshing this page or using a browser with WebGL enabled.</div>';
+    mount.innerHTML='<div style="position:absolute;inset:0;display:grid;place-items:center;padding:30px;text-align:center;color:white;background:linear-gradient(145deg,#294d72,#101e33);font:700 15px Inter">3D world could not start. Refresh the page. If this message stays, your browser may have WebGL disabled.</div>';
   }
 }
 function resize3D() {
   if (!renderer || !camera) return;
-  const w=mount.clientWidth,h=mount.clientHeight;
+  const w=Math.max(mount.clientWidth,window.innerWidth),h=Math.max(mount.clientHeight,window.innerHeight);
   camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
 }
 function animate() {
