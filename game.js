@@ -104,10 +104,13 @@ function frame(now){const dt=Math.min((now-last)/1000||0,.04);last=now;
  if((keys.Space||keys.KeyJ)&&player.y===0)player.vy=7;
  player.vy-=18*dt;player.y=Math.max(0,player.y+player.vy*dt);if(player.y===0)player.vy=0;
  draw();requestAnimationFrame(frame)}
-window.addEventListener("keydown",e=>{keys[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="KeyE"&&nearShop){$("shopModal").classList.remove("hidden");renderShop()}});
-window.addEventListener("keyup",e=>keys[e.code]=false);window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
 $("shopModal").classList.add("hidden");
-canvas=document.createElement("canvas");canvas.id="worldCanvas";canvas.style.cssText="display:block;width:100%;height:100%;outline:none";$("gameCanvas").replaceChildren(canvas);ctx=canvas.getContext("2d");resize();window.addEventListener("resize",resize);
+canvas=document.createElement("canvas");canvas.id="worldCanvas";canvas.tabIndex=0;canvas.setAttribute("aria-label","Game world. Use WASD or arrow keys to move.");canvas.style.cssText="display:block;width:100%;height:100%;outline:none;touch-action:none";$("gameCanvas").replaceChildren(canvas);ctx=canvas.getContext("2d");
+if(!ctx){$("gameCanvas").innerHTML="<div style=\"display:grid;place-items:center;width:100%;height:100%;padding:24px;color:white;text-align:center;font: bold 18px Arial\">Your browser could not start the game graphics. Try opening this page in a normal Chrome tab.</div>";throw new Error("2D canvas is unavailable");}
+canvas.addEventListener("pointerdown",()=>canvas.focus());
+document.addEventListener("keydown",e=>{keys[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="KeyE"&&nearShop){$("shopModal").classList.remove("hidden");renderShop()}});
+document.addEventListener("keyup",e=>keys[e.code]=false);window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
+resize();window.addEventListener("resize",resize);
 renderShop();renderInventory();updateStats();notify("Welcome! Use WASD to move. Walk to the BODY SHOP and press E.");
 setInterval(()=>{if(income>0){money+=income;updateStats();persist()}},1000);
 requestAnimationFrame(frame);
