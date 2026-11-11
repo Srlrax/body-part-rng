@@ -57,68 +57,120 @@ function renderShop(){
 function buyUpgrade(id){const u=upgradeInfo.find(x=>x.id===id);if(!u)return;const level=upgrades[id],price=u.base*(level+1);if(level>=u.max)return notify("That upgrade is already maxed!");if(money<price)return notify("Not enough coins yet!");money-=price;upgrades[id]++;updateStats();renderShop();persist();notify(u.name+" upgraded to level "+upgrades[id]+"!")}
 
 let canvas,ctx,w=0,h=0,dpr=1;
-const player={x:0,z:3,y:0,vy:0,walk:0};
+const player={x:0,z:3,y:0,vy:0,walk:0,yaw:0};
 const keys={};
+let dragging=false,lastPointerX=0;
 function resize(){if(!canvas)return;const r=canvas.getBoundingClientRect();w=Math.max(1,r.width);h=Math.max(1,r.height);dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
-// Follow camera: keep the avatar near the lower middle while the plaza moves around it.
-function project(x,y,z){const rx=x-player.x,rz=z-player.z;const depth=Math.max(.62,Math.min(1.25,1+rz*.012));const s=31*depth;return {x:w/2+(rx-rz)*s*.72,y:h*.68+(rx+rz)*s*.25-y*s}}
-function poly(points,fill,stroke){ctx.beginPath();points.forEach((p,i)=>{const q=project(...p);if(!i)ctx.moveTo(q.x,q.y);else ctx.lineTo(q.x,q.y)});ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke()}}
+// Perspective camera sits behind and above the avatar, like a third-person adventure game.
+function project(x,y,z){
+ const fx=Math.sin(player.yaw),fz=-Math.cos(player.yaw),rx=Math.cos(player.yaw),rz=Math.sin(player.yaw);
+ const camX=player.x-fx*6.5,camZ=player.z-fz*6.5;
+ const dx=x-camX,dz=z-camZ,side=dx*rx+dz*rz,depth=dx*fx+dz*fz;
+ if(depth<.5)return {x:-9999,y:-9999,depth};
+ const focal=Math.min(w,h)*.95;
+ return {x:w/2+side*focal/depth,y:h*.43+(5.8-y)*focal/depth,depth};
+}
+function poly(points,fill,stroke){const pts=points.map(p=>project(...p));if(pts.some(p=>p.depth!==undefined&&p.depth<.5))return;ctx.beginPath();pts.forEach((p,i)=>{if(!i)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)});ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1.5;ctx.stroke()}}
+function shade(hex,f){const n=parseInt(hex.slice(1),16),r=Math.min(255,((n>>16)&255)*f)|0,g=Math.min(255,((n>>8)&255)*f)|0,b=Math.min(255,(n&255)*f)|0;return 'rgb('+r+','+g+','+b+')'}
 function block(x,y,z,ww,hh,dd,color){
  const a=[x-ww/2,y,z-dd/2],b=[x+ww/2,y,z-dd/2],c=[x+ww/2,y,z+dd/2],d=[x-ww/2,y,z+dd/2];
  const A=[a[0],y+hh,a[2]],B=[b[0],y+hh,b[2]],C=[c[0],y+hh,c[2]],D=[d[0],y+hh,d[2]];
- poly([A,B,C,D],color);poly([A,D,d,a],shade(color,.72));poly([B,C,c,b],shade(color,.82));
+ poly([A,B,C,D],color,"#101d2b88");poly([A,D,d,a],shade(color,.68));poly([B,C,c,b],shade(color,.82));
 }
-function shade(hex,f){const n=parseInt(hex.slice(1),16),r=Math.min(255,((n>>16)&255)*f)|0,g=Math.min(255,((n>>8)&255)*f)|0,b=Math.min(255,(n&255)*f)|0;return 'rgb('+r+','+g+','+b+')'}
-function label(x,y,z,text,color="#fff",size=14){const p=project(x,y,z);ctx.font="900 "+size+"px Inter,Arial";ctx.textAlign="center";ctx.lineWidth=4;ctx.strokeStyle="#14243a";ctx.strokeText(text,p.x,p.y);ctx.fillStyle=color;ctx.fillText(text,p.x,p.y)}
+function label(x,y,z,txt,color="#fff",size=15){const p=project(x,y,z);if(p.depth<.5)return;ctx.font="900 "+size+"px Inter,Arial";ctx.textAlign="center";ctx.lineWidth=4;ctx.strokeStyle="#14243a";ctx.strokeText(txt,p.x,p.y);ctx.fillStyle=color;ctx.fillText(txt,p.x,p.y)}
+function drawTree(x,z,scale=1){
+ block(x,0,z,.38*scale,2.1*scale,.38*scale,"#79533b");
+ const p=project(x,3.0*scale,z);if(p.depth<.5)return;
+ const radius=Math.max(5,Math.min(45,34*scale*5/p.depth));
+ const g=ctx.createRadialGradient(p.x-radius*.3,p.y-radius*.4,2,p.x,p.y,radius);
+ g.addColorStop(0,"#9de49a");g.addColorStop(1,"#23734d");
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#b1e8a077";ctx.lineWidth=2;ctx.stroke();
+}
 function drawWorld(){
- ctx.fillStyle="#91bce0";ctx.fillRect(0,0,w,h);
- // distant sky and ground horizon
- const horizon=h*.43;const grad=ctx.createLinearGradient(0,horizon,0,h);grad.addColorStop(0,"#668eae");grad.addColorStop(1,"#294762");ctx.fillStyle=grad;ctx.fillRect(0,horizon,w,h-horizon);
- // checker-like plaza ground
- for(let x=Math.floor(player.x)-32;x<=Math.floor(player.x)+32;x+=2)for(let z=Math.floor(player.z)-32;z<=Math.floor(player.z)+32;z+=2){const p=project(x,0,z);const q=project(x+2,0,z);const r=project(x+2,0,z+2);const s=project(x,0,z+2);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.lineTo(r.x,r.y);ctx.lineTo(s.x,s.y);ctx.closePath();ctx.fillStyle=((x+z)/2%2===0)?"#456b83":"#41657d";ctx.fill()}
- // paths and plaza disc
- ctx.beginPath();for(let i=0;i<=48;i++){const a=i*Math.PI/24,p=project(Math.cos(a)*5.5,0,Math.sin(a)*5.5);if(!i)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y)}ctx.closePath();ctx.fillStyle="#547d99";ctx.fill();ctx.strokeStyle="#a6d9f3";ctx.lineWidth=4;ctx.stroke();
- // shop building at north of spawn
- block(0,0,-12,8,.35,6,"#263d5a");block(0,.35,-14.7,7,3.8,.45,"#24517a");block(-3.3,.35,-12,.45,3.8,5.5,"#3272a5");block(3.3,.35,-12,.45,3.8,5.5,"#3272a5");block(0,4.15,-12,7.2,.45,6.1,"#17365c");block(0,.35,-10.5,6,.9,1,"#8b603d");block(0,4.7,-8.95,5.5,1.05,.2,"#ffcf61");label(0,5.2,-8.8,"BODY SHOP","#ffe18a",18);
- // decorative pillars and trees
- for(let i=0;i<8;i++){const a=i*Math.PI/4,x=Math.cos(a)*9,z=Math.sin(a)*9;block(x,0,z,1.1,2.2,1.1,i%2?"#355c82":"#426e96");block(x,2.2,z,1.35,.18,1.35,"#75a8d7")}
- for(let i=0;i<12;i++){const a=i*Math.PI/6,x=Math.cos(a)*16,z=Math.sin(a)*16;block(x,0,z,.45,1.7,.45,"#79543b");const p=project(x,2.7,z);ctx.beginPath();ctx.arc(p.x,p.y,25,0,Math.PI*2);ctx.fillStyle="#3f9b75";ctx.fill();ctx.strokeStyle="#8bc69c";ctx.lineWidth=2;ctx.stroke()}
+ const sky=ctx.createLinearGradient(0,0,0,h*.55);sky.addColorStop(0,"#72b9ed");sky.addColorStop(.7,"#d3e8f5");sky.addColorStop(1,"#f7d9ae");ctx.fillStyle=sky;ctx.fillRect(0,0,w,h);
+ // distant hills
+ ctx.fillStyle="#719c91";ctx.beginPath();ctx.moveTo(0,h*.48);for(let x=0;x<=w;x+=35)ctx.lineTo(x,h*.42+Math.sin(x*.012)*22);ctx.lineTo(w,h*.58);ctx.lineTo(0,h*.58);ctx.fill();
+ const ground=ctx.createLinearGradient(0,h*.48,0,h);ground.addColorStop(0,"#719b68");ground.addColorStop(1,"#294e3d");ctx.fillStyle=ground;ctx.fillRect(0,h*.48,w,h*.52);
+ // perspective plaza tiles
+ for(let z=-24;z<=34;z+=2){for(let x=-24;x<=24;x+=2){
+   const col=((Math.floor(x/2)+Math.floor(z/2))%2===0)?"#6e9866":"#648d60";
+   poly([[player.x+x,0,player.z+z],[player.x+x+2,0,player.z+z],[player.x+x+2,0,player.z+z+2],[player.x+x,0,player.z+z+2]],col);
+ }}
+ // central stone path leading to the shop
+ poly([[-4,0,-30],[4,0,-30],[4,0,18],[-4,0,18]],"#9a9b8b","#d3c7a1");
+ for(let z=-24;z<17;z+=4){poly([[-3.7,.02,z],[-3.45,.02,z],[3.45,.02,z],[3.7,.02,z]],"#b8b39e")}
+ // plaza circle and trim
+ const ring=[];for(let i=0;i<=48;i++){const a=i*Math.PI/24;ring.push([Math.cos(a)*7,.03,Math.sin(a)*7])}
+ const pts=ring.map(p=>project(...p));ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.strokeStyle="#e6d6a0";ctx.lineWidth=5;ctx.stroke();
+ // upgrade shop building
+ block(0,0,-14,10,.45,7,"#34485d");
+ block(0,.45,-17.2,9,4.3,.5,"#3977a0");block(-4.25,.45,-14,.5,4.2,6.2,"#315f83");block(4.25,.45,-14,.5,4.2,6.2,"#315f83");
+ block(0,4.7,-14,10,.55,7,"#243d59");block(0,5.1,-14,9.3,.18,6.4,"#e4b95d");
+ // glass doors and windows
+ block(-2.5,.5,-16.82,2.1,2.7,.12,"#8ed4e6");block(2.5,.5,-16.82,2.1,2.7,.12,"#8ed4e6");
+ block(0,.5,-16.7,1.4,3.2,.18,"#182b40");block(0,3.85,-16.75,5.8,.65,.2,"#f3c85e");
+ label(0,4.0,-16.45,"UPGRADE SHOP","#fff0ad",19);
+ // lamp posts, planters, trees
+ for(let i=0;i<6;i++){const x=-14+i*5.6;block(x,0,-5,.18,3.7,.18,"#334b5c");block(x,3.7,-5,.8,.18,.8,"#f9e3a1");const p=project(x,3.8,-5);if(p.depth>.5){ctx.fillStyle="#ffe6a0";ctx.shadowColor="#ffe6a0";ctx.shadowBlur=18;ctx.beginPath();ctx.arc(p.x,p.y,Math.max(2,9/p.depth),0,Math.PI*2);ctx.fill();ctx.shadowBlur=0}}
+ for(let i=0;i<12;i++){const a=i*Math.PI/6;drawTree(Math.cos(a)*19,Math.sin(a)*19,1.1)}
+ // decorative low walls around the plaza
+ for(let i=0;i<8;i++){const a=i*Math.PI/4,x=Math.cos(a)*10,z=Math.sin(a)*10;block(x,0,z,1.4,.55,1.4,"#b5a47c");block(x,.55,z,1.45,.12,1.45,"#e2d3a8")}
 }
+function rounded(x,y,wid,hei,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,wid,hei,r);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke()}}
 function drawAvatar(){
- const x=player.x,z=player.z,y=player.y,head=part(equipped.Head),torso=part(equipped.Torso),arms=part(equipped.Arms),legs=part(equipped.Legs);
- // shadow
- const sh=project(x,0,z);ctx.beginPath();ctx.ellipse(sh.x,sh.y,25,10,0,0,Math.PI*2);ctx.fillStyle="#13283b66";ctx.fill();
- const step=Math.sin(player.walk)*.18;
- block(x-.3,.05+y,z+step,.48,1.05,.48,legs.color);block(x+.3,.05+y,z-step,.48,1.05,.48,legs.color);
- block(x-.82,1.25+y,z,.38,1.05,.42,arms.color);block(x+.82,1.25+y,z,.38,1.05,.42,arms.color);
- block(x,1.15+y,z,1.15,1.2,.62,torso.color);
- if(torso.id==="neon-torso"){const p=project(x,1.65+y,z-.34);ctx.fillStyle="#c8ffff";ctx.fillRect(p.x-5,p.y-5,10,10)}
- block(x,2.45+y,z,.9,.9,.9,head.color);
- if(head.id==="crown-head"){block(x,3.35+y,z,.95,.18,.95,"#f4c64e");for(let i=-1;i<=1;i++)block(x+i*.3,3.53+y,z,.16,.35,.16,"#ffe28a")}
- const face=project(x,2.7+y,z-.48);ctx.fillStyle="#17243a";ctx.fillRect(face.x-7,face.y-2,4,5);ctx.fillRect(face.x+4,face.y-2,4,5);
- label(x,3.9+y,z,"YOU","#fff",11);
+ // Draw the avatar as a fully opaque, outlined character in screen space.
+ const cx=w/2,base=h*.82,scale=Math.max(.72,Math.min(1.12,h/700)),step=Math.sin(player.walk)*8*scale;
+ const head=part(equipped.Head),torso=part(equipped.Torso),arms=part(equipped.Arms),legs=part(equipped.Legs);
+ ctx.save();ctx.translate(cx,base);ctx.scale(scale,scale);
+ ctx.fillStyle="#10263b66";ctx.beginPath();ctx.ellipse(0,2,42,12,0,0,Math.PI*2);ctx.fill();
+ // legs, with a visible dark outline and walking swing
+ ctx.save();ctx.translate(-13,0);ctx.rotate(step*.012);rounded(-10,-61,20,64,7,legs.color,"#14263b");rounded(-12,-9,25,12,5,"#243a56","#14263b");ctx.restore();
+ ctx.save();ctx.translate(13,0);ctx.rotate(-step*.012);rounded(-10,-61,20,64,7,legs.color,"#14263b");rounded(-12,-9,25,12,5,"#243a56","#14263b");ctx.restore();
+ // arms behind torso
+ ctx.save();ctx.translate(-29,-103);ctx.rotate(-.12-step*.008);rounded(-10,-4,20,68,8,arms.color,"#14263b");ctx.restore();
+ ctx.save();ctx.translate(29,-103);ctx.rotate(.12+step*.008);rounded(-10,-4,20,68,8,arms.color,"#14263b");ctx.restore();
+ // torso and chest detail
+ rounded(-29,-137,58,78,10,torso.color,"#14263b");
+ rounded(-19,-127,38,7,3,"#ffffff55");
+ if(torso.id==="neon-torso"){ctx.shadowColor="#5ffff0";ctx.shadowBlur=18;rounded(-9,-108,18,18,5,"#bafffa","#eaffff");ctx.shadowBlur=0}
+ // head, neck and face
+ rounded(-9,-66,18,14,4,"#d5a47f","#14263b");
+ rounded(-23,-190,46,48,12,head.color,"#14263b");
+ ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(-9,-171,5,0,Math.PI*2);ctx.arc(9,-171,5,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#18283b";ctx.beginPath();ctx.arc(-8,-171,2.5,0,Math.PI*2);ctx.arc(10,-171,2.5,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle="#593d32";ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(0,-160,7,.15,Math.PI-.15);ctx.stroke();
+ if(head.id==="crown-head"){ctx.fillStyle="#f4c64e";ctx.strokeStyle="#704d18";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-23,-186);ctx.lineTo(-22,-207);ctx.lineTo(-9,-196);ctx.lineTo(0,-213);ctx.lineTo(10,-196);ctx.lineTo(23,-207);ctx.lineTo(23,-186);ctx.closePath();ctx.fill();ctx.stroke()}
+ ctx.restore();
+ // Name tag floats over the avatar.
+ rounded(cx-30,base-235*scale,60,22,8,"#10243be8","#ffffff66");ctx.fillStyle="#fff";ctx.font="900 10px Inter,Arial";ctx.textAlign="center";ctx.fillText("YOU",cx,base-220*scale);
 }
 function draw(){
  drawWorld();drawAvatar();
- const shopDist=Math.hypot(player.x,player.z+12)<5.2;
+ const shopDist=Math.hypot(player.x,player.z+14)<6;
  if(shopDist!==nearShop){nearShop=shopDist;$("shopPrompt").classList.toggle("hidden",!nearShop)}
- if(nearShop){const p=project(0,5.7,-12);ctx.font="900 13px Inter,Arial";ctx.textAlign="center";ctx.fillStyle="#ffe18a";ctx.fillText("PRESS E AT THE COUNTER",p.x,p.y)}
+ if(nearShop){const p=project(0,5.8,-14);if(p.depth>.5){ctx.font="900 13px Inter,Arial";ctx.textAlign="center";ctx.fillStyle="#fff0ad";ctx.fillText("UPGRADE SHOP",p.x,p.y)}}
 }
 let last=0;
 function frame(now){const dt=Math.min((now-last)/1000||0,.04);last=now;
- let dx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
- let dz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0);
- if(dx||dz){const len=Math.hypot(dx,dz);dx/=len;dz/=len;const baseSpeed=5.5+upgrades.speed*1.5;const speed=(keys.ShiftLeft||keys.ShiftRight)?baseSpeed*1.55:baseSpeed;player.x=Math.max(-24,Math.min(24,player.x+dx*speed*dt));player.z=Math.max(-24,Math.min(24,player.z+dz*speed*dt));player.walk+=dt*10}
+ let forward=(keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0);
+ let side=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
+ if(forward||side){const len=Math.hypot(forward,side);forward/=len;side/=len;const speed=(5.5+upgrades.speed*1.5)*((keys.ShiftLeft||keys.ShiftRight)?1.5:1);
+ const fx=Math.sin(player.yaw),fz=-Math.cos(player.yaw),rx=Math.cos(player.yaw),rz=Math.sin(player.yaw);
+ player.x=Math.max(-26,Math.min(26,player.x+(fx*forward+rx*side)*speed*dt));
+ player.z=Math.max(-26,Math.min(26,player.z+(fz*forward+rz*side)*speed*dt));
+ player.walk+=dt*11;player.yaw=Math.atan2(fx*forward+rx*side,-(fz*forward+rz*side))}
  if((keys.Space||keys.KeyJ)&&player.y===0)player.vy=7;
  player.vy-=18*dt;player.y=Math.max(0,player.y+player.vy*dt);if(player.y===0)player.vy=0;
  draw();requestAnimationFrame(frame)}
 $("shopModal").classList.add("hidden");
-canvas=document.createElement("canvas");canvas.id="worldCanvas";canvas.tabIndex=0;canvas.setAttribute("aria-label","Game world. Use WASD or arrow keys to move.");canvas.style.cssText="display:block;width:100%;height:100%;outline:none;touch-action:none";$("gameCanvas").replaceChildren(canvas);ctx=canvas.getContext("2d");
-if(!ctx){$("gameCanvas").innerHTML="<div style=\"display:grid;place-items:center;width:100%;height:100%;padding:24px;color:white;text-align:center;font: bold 18px Arial\">Your browser could not start the game graphics. Try opening this page in a normal Chrome tab.</div>";throw new Error("2D canvas is unavailable");}
-canvas.addEventListener("pointerdown",()=>canvas.focus());
+canvas=document.createElement("canvas");canvas.id="worldCanvas";canvas.tabIndex=0;canvas.setAttribute("aria-label","Third person game world. Use WASD or arrow keys to move.");canvas.style.cssText="display:block;width:100%;height:100%;outline:none;touch-action:none";$("gameCanvas").replaceChildren(canvas);ctx=canvas.getContext("2d");
+if(!ctx){$("gameCanvas").innerHTML="<div style=\"display:grid;place-items:center;width:100%;height:100%;padding:24px;color:white;text-align:center;font:bold 18px Arial\">Your browser could not start the game graphics. Try opening this page in a normal Chrome tab.</div>";throw new Error("2D canvas is unavailable");}
+canvas.addEventListener("pointerdown",e=>{canvas.focus();dragging=true;lastPointerX=e.clientX});
+window.addEventListener("pointerup",()=>dragging=false);
+window.addEventListener("pointermove",e=>{if(dragging){player.yaw+= (e.clientX-lastPointerX)*.006;lastPointerX=e.clientX}});
 document.addEventListener("keydown",e=>{keys[e.code]=true;if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code))e.preventDefault();if(e.code==="KeyE"&&nearShop){$("shopModal").classList.remove("hidden");renderShop()}});
-document.addEventListener("keyup",e=>keys[e.code]=false);window.addEventListener("blur",()=>Object.keys(keys).forEach(k=>keys[k]=false));
+document.addEventListener("keyup",e=>keys[e.code]=false);window.addEventListener("blur",()=>{dragging=false;Object.keys(keys).forEach(k=>keys[k]=false)});
 resize();window.addEventListener("resize",resize);
-renderShop();renderInventory();updateStats();notify("Welcome! Use WASD to move. Walk to the BODY SHOP and press E.");
+renderShop();renderInventory();updateStats();notify("Welcome! WASD to move. Drag to turn the camera. Find the UPGRADE SHOP!");
 setInterval(()=>{if(income>0){money+=income;updateStats();persist()}},1000);
 requestAnimationFrame(frame);
