@@ -74,3 +74,23 @@
 
 /* Third-person 3D viewport */
 #gameCanvas canvas{cursor:grab;touch-action:none;user-select:none}#gameCanvas canvas:active{cursor:grabbing}
+
+/* Refined upgrade counter styling */
+#shopModal{background:radial-gradient(ellipse at center,#152b42aa 0%,#030914dc 72%);backdrop-filter:blur(9px)}
+#shopModal .modal-card{position:relative;width:min(690px,94vw);padding:26px 28px 28px;border:1px solid #d2ad6b88;border-radius:22px;background:linear-gradient(155deg,#263e52 0%,#17283a 42%,#101a29 100%);box-shadow:0 30px 100px #000d,inset 0 1px #ffffff20}
+#shopModal .modal-card:before{content:"";position:absolute;inset:8px;border:1px solid #e7c77b35;border-radius:16px;pointer-events:none}
+#shopModal .modal-head{position:relative;padding:3px 4px 18px;border-bottom:1px solid #d7b87555}
+#shopModal .modal-head small{color:#f0c875;letter-spacing:2.5px}
+#shopModal .modal-head h2{font-size:29px;letter-spacing:-.8px;color:#fff2d5;text-shadow:0 2px 12px #0008}
+#shopModal .close-modal{border-color:#b28c55;background:#293d50;color:#ffe9bd}
+#shopModal .modal-subtitle{position:relative;margin:15px 4px 20px;color:#c4d0d8;font-size:12px;line-height:1.65}
+#shopModal .shop-list{position:relative;grid-template-columns:1fr;gap:12px}
+#shopModal .shop-item{min-height:88px;padding:14px 16px;border:1px solid #a58b5c66;border-radius:14px;background:linear-gradient(105deg,#31485a 0%,#213448 55%,#1a2b3d 100%);box-shadow:0 5px 14px #0003,inset 0 1px #ffffff12;transition:transform .16s,border-color .16s,background .16s}
+#shopModal .shop-item:hover{transform:translateY(-2px);border-color:#f1ce83;background:linear-gradient(105deg,#3a5365,#263c50)}
+#shopModal .shop-icon{flex:0 0 54px;height:54px;border:1px solid #e1bd7666;border-radius:13px;background:linear-gradient(145deg,#e4c17b,#a97a3c);color:#25364a;box-shadow:0 3px 8px #0003}
+#shopModal .shop-copy b{font-size:13px;color:#fff0d0}
+#shopModal .shop-copy small{font-size:10px;color:#c4d2dc;line-height:1.5}
+#shopModal .buy-button{min-width:116px;padding:11px 13px;border:1px solid #f7d58c;border-radius:9px;background:linear-gradient(180deg,#f5d58e,#c99345);color:#3b2a15;font-size:9px;font-weight:1000;box-shadow:0 3px 0 #8b602c,0 5px 10px #0003}
+#shopModal .buy-button:active{transform:translateY(2px);box-shadow:0 1px 0 #8b602c}
+#shopModal .buy-button:disabled{border-color:#657585;background:#455666;color:#d0d8df;box-shadow:none}
+@media(max-width:650px){#shopModal .modal-card{padding:18px 16px 20px}#shopModal .modal-head h2{font-size:23px}#shopModal .shop-item{min-height:76px;padding:10px}#shopModal .shop-icon{flex-basis:44px;height:44px}#shopModal .buy-button{min-width:94px;padding:9px 7px}}
